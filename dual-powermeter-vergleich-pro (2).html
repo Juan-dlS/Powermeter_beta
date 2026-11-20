@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dual Powermeter Vergleich Pro</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #f5f5f5;
+      --accent1: #00d2ff;
+      --accent2: #ff7b00;
+      --diff: #a855f7;
+      --btn: #2563eb;
+      --btn-ant: #0d9488;
+      --btn-rec: #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { margin-bottom: 5px; text-align: center; font-size: 1.5rem; }
+    p.subtitle { color: #aaa; margin-top: 0; margin-bottom: 15px; font-size: 0.85rem; text-align: center; }
+    
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      background: var(--card);
+      padding: 12px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 960px;
+      box-sizing: border-box;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    select {
+      background: #2c2c2c;
+      color: white;
+      border: 1px solid #444;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .card select {
+      width: 100%;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 15px;
+      width: 100%;
+      max-width: 960px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      border-top: 4px solid #444;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card.pm1 { border-color: var(--accent1); }
+    .card.pm2 { border-color: var(--accent2); }
+    .card.diff { border-color: var(--diff); }
+    .card h2 { margin: 0 0 8px 0; font-size: 1.15rem; }
+    .device-name { font-size: 0.85rem; color: #aaa; min-height: 18px; }
+    .value { font-size: 3rem; font-weight: bold; margin: 5px 0 0 0; }
+    .unit { font-size: 1.1rem; color: #888; }
+    .cadence-value { font-size: 1.35rem; color: #ddd; margin: 4px 0 8px 0; font-weight: 500; }
+    .cadence-unit { font-size: 0.95rem; color: #888; }
+    .sub-value { font-size: 1.3rem; color: #ccc; margin-bottom: 8px; }
+    .avg-badge {
+      background: #2a2a2a;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #bbb;
+      margin-top: 8px;
+    }
+    .max-badge {
+      background: #242424;
+      border: 1px solid #333;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
+    .chart-container {
+      width: 100%;
+      max-width: 960px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 15px;
+      box-sizing: border-box;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    .legend span { margin-left: 12px; font-weight: bold; }
+    canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+      background: #161616;
+      border-radius: 8px;
+    }
+
+    button {
+      background: var(--btn);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled { background: #444; cursor: not-allowed; }
+    .btn-ant { background: var(--btn-ant); }
+    .btn-demo { background: #7c3aed; }
+    .btn-reset { background: #4b5563; }
+    .btn-lang {
+      background: #2c2c2c;
+      border: 1px solid #555;
+      padding: 7px 12px;
+      font-size: 0.85rem;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 960px;
+    }
+    .controls button { flex: 1; min-width: 180px; }
+    .btn-rec { background: var(--btn-rec); }
+    .btn-rec.active { background: #eab308; color: #121212; }
+    .btn-save { background: #16a34a; }
+    .status-bar {
+      margin-top: 12px;
+      margin-bottom: 12px;
+      padding: 10px;
+      background: #1e1e1e;
+      border-radius: 8px;
+      color: #ddd;
+      font-size: 0.9rem;
+      text-align: center;
+      width: 100%;
+      max-width: 960px;
+      box-sizing: border-box;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="title">Dual Powermeter Vergleich Pro</h1>
+  <p class="subtitle" id="subtitle">BLE &amp; ANT+ Live-Analyse, Cadence, Max-Werte &amp; Diagramm</p>
+
+  <div class="status-bar" id="status">Initialisiere...</div>
+
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <button id="btnScan">+ BLE Powermeter suchen</button>
+      <button id="btnAnt" class="btn-ant">+ ANT+ Stick (USB)</button>
+      <button id="btnDemo" class="btn-demo">Demo starten</button>
+    </div>
+    <div class="toolbar-group">
+      <label for="smoothingSelect" id="lblSmoothing">Glättung:</label>
+      <select id="smoothingSelect">
+        <option value="1" id="optSmooth1">1s (Live)</option>
+        <option value="3" id="optSmooth3" selected>3s Ø</option>
+        <option value="5" id="optSmooth5">5s Ø</option>
+      </select>
+      <button id="btnLang" class="btn-lang" title="Sprache wechseln / Switch language">DE | EN</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Powermeter 1 -->
+    <div class="card pm1">
+      <div>
+        <h2 id="titlePM1">Powermeter 1 (Referenz)</h2>
+        <div class="device-name" id="name1">Kein Sensor gewählt</div>
+        <div class="value"><span id="val1">--</span> <span class="unit">W</span></div>
+        <div class="cadence-value"><span id="cad1">--</span> <span class="cadence-unit" id="cadUnit1">U/min</span></div>
+      </div>
+      <div>
+        <div class="avg-badge">
+          <span id="lblAvg1">Aktivität Ø:</span> <strong id="avg1">--</strong> W &nbsp;|&nbsp; <strong id="avgCad1">--</strong> <span id="avgCadUnit1">U/min</span>
+        </div>
+        <div class="max-badge">
+          <span id="lblMax1">Max Leistung:</span> <strong id="max1">--</strong> W
+        </div>
+        <select id="selectPM1">
+          <option value="" id="optSelectPM1">-- Powermeter Referenz wählen --</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Powermeter 2 -->
+    <div class="card pm2">
+      <div>
+        <h2 id="titlePM2">Powermeter 2</h2>
+        <div class="device-name" id="name2">Kein Sensor gewählt</div>
+        <div class="value"><span id="val2">--</span> <span class="unit">W</span></div>
+        <div class="cadence-value"><span id="cad2">--</span> <span class="cadence-unit" id="cadUnit2">U/min</span></div>
+      </div>
+      <div>
+        <div class="avg-badge">
+          <span id="lblAvg2">Aktivität Ø:</span> <strong id="avg2">--</strong> W &nbsp;|&nbsp; <strong id="avgCad2">--</strong> <span id="avgCadUnit2">U/min</span>
+        </div>
+        <div class="max-badge">
+          <span id="lblMax2">Max Leistung:</span> <strong id="max2">--</strong> W
+        </div>
+        <select id="selectPM2">
+          <option value="" id="optSelectPM2">-- Powermeter 2 wählen --</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Differenz -->
+    <div class="card diff">
+      <div>
+        <h2 id="titleDiff">Differenz (PM 2 − PM 1)</h2>
+        <div class="device-name" id="subDiff">Abweichung</div>
+        <div class="value"><span id="diffW">--</span> <span class="unit">W</span></div>
+        <div class="sub-value"><span id="diffPct">--</span> %</div>
+      </div>
+      <div>
+        <div class="avg-badge"><span id="lblAvgDiff">Gesamt Ø:</span> <strong id="avgDiffW">--</strong> W (<strong id="avgDiffPct">--</strong> %)</div>
+        <div class="max-badge"><span id="lblMaxDiff">Max Abweichung:</span> <strong id="maxDiffW">--</strong> W</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-header">
+      <span id="chartTitle">Leistungsverlauf (60s)</span>
+      <div class="legend">
+        <span style="color: var(--accent1);">● PM 1</span>
+        <span style="color: var(--accent2);">● PM 2</span>
+      </div>
+    </div>
+    <canvas id="powerChart"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="btnRecord" class="btn-rec">Aufzeichnung starten</button>
+    <button id="btnReset" class="btn-reset">Werte zurücksetzen</button>
+    <button id="btnSave" class="btn-save" disabled>CSV herunterladen (0 Punkte)</button>
+  </div>
+
+  <script>
+    const I18N = {
+      de: {
+        title: "Dual Powermeter Vergleich Pro",
+        subtitle: "BLE & ANT+ Live-Analyse, Cadence, Max-Werte & Diagramm",
+        btnScan: "+ BLE Powermeter suchen",
+        btnAnt: "+ ANT+ Stick (USB)",
+        btnAntConnected: "ANT+ Aktiv",
+        btnDemoStart: "Demo starten",
+        btnDemoStop: "Demo stoppen",
+        lblSmoothing: "Glättung:",
+        optSmooth1: "1s (Live)",
+        optSmooth3: "3s Ø",
+        optSmooth5: "5s Ø",
+        titlePM1: "Powermeter 1 (Referenz)",
+        titlePM2: "Powermeter 2",
+        titleDiff: "Differenz (PM 2 − PM 1)",
+        subDiff: "Abweichung",
+        cadUnit: "U/min",
+        noSensor: "Kein Sensor gewählt",
+        connecting: "Verbinde...",
+        connected: "Verbunden",
+        disconnected: "Verbindung getrennt!",
+        connError: "Verbindungsfehler",
+        lblAvg: "Aktivität Ø:",
+        lblAvgDiff: "Gesamt Ø:",
+        lblMax: "Max Leistung:",
+        lblMaxDiff: "Max Abweichung:",
+        optSelectPM1: "-- Powermeter Referenz wählen --",
+        optSelectPM2: "-- Powermeter 2 wählen --",
+        chartTitle: "Leistungsverlauf (60s)",
+        btnRecStart: "Aufzeichnung starten",
+        btnRecNew: "Neue Aufzeichnung starten",
+        btnRecStop: "Aufzeichnung stoppen",
+        btnReset: "Werte zurücksetzen",
+        btnSave: (n) => `CSV herunterladen (${n} Punkte)`,
+        csvDiffCol: "Differenz_W",
+        csvCadCol: "Cadence_RPM",
+        statusReady: "Bereit. Bitte BLE-Powermeter oder ANT+ USB-Stick verbinden.",
+        statusInsecure: "Achtung: Seite läuft nicht über HTTPS/localhost! Web Bluetooth & USB sind vom Browser gesperrt.",
+        statusNoBT: "Hinweis: Web Bluetooth ist in diesem Browser/Kontext nicht verfügbar (ANT+ USB evtl. nutzbar).",
+        statusScanning: "BLE-Suche läuft... Bitte Kurbel drehen!",
+        statusFound: (name) => `"${name}" gefunden!`,
+        statusScanError: (msg) => `BLE-Scan Fehler: ${msg}`,
+        statusScanCancelled: "Auswahl abgebrochen.",
+        statusAlreadyAssigned: (slot) => `Dieser Sensor ist bereits als PM ${slot} zugewiesen.`,
+        statusConnecting: (name, slot) => `Verbinde mit ${name} (PM ${slot})...`,
+        statusConnected: (name, slot) => `Verbunden mit ${name} als PM ${slot}.`,
+        statusLost: (slot) => `Verbindung zu PM ${slot} verloren.`,
+        statusSlotError: (slot, msg) => `Fehler bei PM ${slot}: ${msg}`,
+        statusAntNoUSB: "WebUSB wird nicht unterstützt (Chrome/Edge über HTTPS oder localhost nutzen).",
+        statusAntSearching: "ANT+ USB-Stick wird initialisiert & sucht nach Powermetern...",
+        statusAntFound: (id) => `ANT+ Powermeter #${id} gefunden!`,
+        statusAntError: (msg) => `ANT+ USB Fehler: ${msg}`,
+        statusResetRec: "Aufzeichnung, Durchschnitte & Max-Werte zurückgesetzt...",
+        statusReset: "Durchschnitts-, Max-Werte und Diagramm zurückgesetzt.",
+        statusRecRunning: "Aufzeichnung läuft...",
+        statusRecStopped: (n) => `Aufzeichnung gestoppt (${n} Sekunden erfasst).`,
+        statusDemoRunning: "Demo-Modus aktiv (simulierte Werte für PM 1 & PM 2).",
+        alertNoBT: "Web Bluetooth nicht verfügbar. Bitte Chrome/Edge über HTTPS nutzen.",
+        unknownDevice: (id) => `Unbekannt (${id})`
+      },
+      en: {
+        title: "Dual Power Meter Comparison Pro",
+        subtitle: "BLE & ANT+ Live Analysis, Cadence, Max Values & Chart",
+        btnScan: "+ Scan BLE Power Meter",
+        btnAnt: "+ ANT+ Stick (USB)",
+        btnAntConnected: "ANT+ Active",
+        btnDemoStart: "Start Demo",
+        btnDemoStop: "Stop Demo",
+        lblSmoothing: "Smoothing:",
+        optSmooth1: "1s (Live)",
+        optSmooth3: "3s Avg",
+        optSmooth5: "5s Avg",
+        titlePM1: "Power Meter 1 (Reference)",
+        titlePM2: "Power Meter 2",
+        titleDiff: "Difference (PM 2 − PM 1)",
+        subDiff: "Deviation",
+        cadUnit: "rpm",
+        noSensor: "No sensor selected",
+        connecting: "Connecting...",
+        connected: "Connected",
+        disconnected: "Disconnected!",
+        connError: "Connection error",
+        lblAvg: "Activity Avg:",
+        lblAvgDiff: "Total Avg:",
+        lblMax: "Max Power:",
+        lblMaxDiff: "Max Deviation:",
+        optSelectPM1: "-- Select Reference Power Meter --",
+        optSelectPM2: "-- Select Power Meter 2 --",
+        chartTitle: "Power History (60s)",
+        btnRecStart: "Start Recording",
+        btnRecNew: "Start New Recording",
+        btnRecStop: "Stop Recording",
+        btnReset: "Reset Values",
+        btnSave: (n) => `Download CSV (${n} points)`,
+        csvDiffCol: "Difference_W",
+        csvCadCol: "Cadence_RPM",
+        statusReady: "Ready. Please connect a BLE power meter or ANT+ USB stick.",
+        statusInsecure: "Warning: Page is not served over HTTPS/localhost! Web Bluetooth & USB are blocked by browser.",
+        statusNoBT: "Note: Web Bluetooth is unavailable in this browser/context (ANT+ USB may still work).",
+        statusScanning: "BLE scanning... Please spin the cranks!",
+        statusFound: (name) => `"${name}" found!`,
+        statusScanError: (msg) => `BLE scan error: ${msg}`,
+        statusScanCancelled: "Selection cancelled.",
+        statusAlreadyAssigned: (slot) => `This sensor is already assigned as PM ${slot}.`,
+        statusConnecting: (name, slot) => `Connecting to ${name} (PM ${slot})...`,
+        statusConnected: (name, slot) => `Connected to ${name} as PM ${slot}.`,
+        statusLost: (slot) => `Connection to PM ${slot} lost.`,
+        statusSlotError: (slot, msg) => `Error on PM ${slot}: ${msg}`,
+        statusAntNoUSB: "WebUSB is not supported (use Chrome/Edge via HTTPS or localhost).",
+        statusAntSearching: "Initializing ANT+ USB stick & scanning for power meters...",
+        statusAntFound: (id) => `ANT+ Power Meter #${id} found!`,
+        statusAntError: (msg) => `ANT+ USB error: ${msg}`,
+        statusResetRec: "Recording, averages & max values reset...",
+        statusReset: "Averages, max values and chart reset.",
+        statusRecRunning: "Recording in progress...",
+        statusRecStopped: (n) => `Recording stopped (${n} seconds captured).`,
+        statusDemoRunning: "Demo mode active (simulated values for PM 1 & PM 2).",
+        alertNoBT: "Web Bluetooth is not available. Please use Chrome/Edge over HTTPS.",
+        unknownDevice: (id) => `Unknown (${id})`
+      }
+    };
+
+    let currentLang = 'de';
+    try {
+      currentLang = localStorage.getItem('pm_compare_lang') || 'de';
+    } catch (e) {}
+    let lastStatusUpdater = null;
+
+    function t(key, ...args) {
+      const entry = I18N[currentLang][key];
+      return typeof entry === 'function' ? entry(...args) : entry;
+    }
+
+    function setStatusKey(key, ...args) {
+      lastStatusUpdater = () => {
+        document.getElementById('status').innerText = t(key, ...args);
+      };
+      lastStatusUpdater();
+    }
+
+    const CPS_SERVICE_UUID = 0x1818;
+    const FTMS_SERVICE_UUID = 0x1826;
+    const CPM_CHAR_UUID = 0x2A63;
+    const STALE_TIMEOUT_MS = 3000;
+
+    const knownDevices = new Map();
+    const activeSlots = {
+      1: { deviceId: null, deviceName: null, type: null, characteristic: null, listener: null },
+      2: { deviceId: null, deviceName: null, type: null, characteristic: null, listener: null }
+    };
+
+    let rawPower1 = null;
+    let rawPower2 = null;
+    let rawCadence1 = null;
+    let rawCadence2 = null;
+    let lastUpdate1 = null;
+    let lastUpdate2 = null;
+    let buffer1 = [];
+    let buffer2 = [];
+
+    const crankState = {
+      1: { lastRevs: null, lastEventTime: null, lastChangeTime: null },
+      2: { lastRevs: null, lastEventTime: null, lastChangeTime: null }
+    };
+
+    const MAX_HISTORY = 60;
+    let chartHistory1 = [];
+    let chartHistory2 = [];
+
+    let isRecording = false;
+    let recordedData = [];
+    let recordedPM1Name = "Powermeter 1";
+    let recordedPM2Name = "Powermeter 2";
+    let sumP1 = 0, sumP2 = 0, sumDiff = 0, sumP1Both = 0, countBoth = 0, countP1 = 0, countP2 = 0;
+    let sumCad1 = 0, countCad1 = 0, sumCad2 = 0, countCad2 = 0;
+    let maxP1 = null, maxP2 = null, maxDiffAbs = null;
+    let wakeLock = null;
+    let demoInterval = null;
+
+    const canvas = document.getElementById('powerChart');
+    const ctx = canvas.getContext('2d');
+
+    function applyTranslations() {
+      document.documentElement.lang = currentLang;
+      document.title = t('title');
+      document.getElementById('title').innerText = t('title');
+      document.getElementById('subtitle').innerText = t('subtitle');
+      document.getElementById('btnScan').innerText = t('btnScan');
+      document.getElementById('btnAnt').innerText = antRunning ? t('btnAntConnected') : t('btnAnt');
+      document.getElementById('btnDemo').innerText = demoInterval ? t('btnDemoStop') : t('btnDemoStart');
+      document.getElementById('lblSmoothing').innerText = t('lblSmoothing');
+      document.getElementById('optSmooth1').innerText = t('optSmooth1');
+      document.getElementById('optSmooth3').innerText = t('optSmooth3');
+      document.getElementById('optSmooth5').innerText = t('optSmooth5');
+      document.getElementById('titlePM1').innerText = t('titlePM1');
+      document.getElementById('titlePM2').innerText = t('titlePM2');
+      document.getElementById('titleDiff').innerText = t('titleDiff');
+      document.getElementById('subDiff').innerText = t('subDiff');
+      document.getElementById('cadUnit1').innerText = t('cadUnit');
+      document.getElementById('cadUnit2').innerText = t('cadUnit');
+      document.getElementById('avgCadUnit1').innerText = t('cadUnit');
+      document.getElementById('avgCadUnit2').innerText = t('cadUnit');
+      document.getElementById('lblAvg1').innerText = t('lblAvg');
+      document.getElementById('lblAvg2').innerText = t('lblAvg');
+      document.getElementById('lblAvgDiff').innerText = t('lblAvgDiff');
+      document.getElementById('lblMax1').innerText = t('lblMax');
+      document.getElementById('lblMax2').innerText = t('lblMax');
+      document.getElementById('lblMaxDiff').innerText = t('lblMaxDiff');
+      document.getElementById('optSelectPM1').innerText = t('optSelectPM1');
+      document.getElementById('optSelectPM2').innerText = t('optSelectPM2');
+      document.getElementById('chartTitle').innerText = t('chartTitle');
+      document.getElementById('btnReset').innerText = t('btnReset');
+      document.getElementById('btnSave').innerText = t('btnSave', recordedData.length);
+      document.getElementById('btnLang').innerText = currentLang === 'de' ? 'DE | EN' : 'EN | DE';
+
+      if (!activeSlots[1].deviceId) document.getElementById('name1').innerText = t('noSensor');
+      if (!activeSlots[2].deviceId) document.getElementById('name2').innerText = t('noSensor');
+
+      const recBtn = document.getElementById('btnRecord');
+      if (isRecording) {
+        recBtn.innerText = t('btnRecStop');
+      } else {
+        recBtn.innerText = recordedData.length > 0 ? t('btnRecNew') : t('btnRecStart');
+      }
+
+      if (lastStatusUpdater) lastStatusUpdater();
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'de' ? 'en' : 'de';
+      try {
+        localStorage.setItem('pm_compare_lang', currentLang);
+      } catch (e) {}
+      applyTranslations();
+    }
+
+    function parseCyclingPower(dataView) {
+      if (!dataView || dataView.byteLength < 4) return null;
+      const flags = dataView.getUint16(0, true);
+      const watts = dataView.getInt16(2, true);
+
+      let offset = 4;
+      if (flags & 0x01) offset += 1;
+      if (flags & 0x04) offset += 2;
+      if (flags & 0x10) offset += 6;
+
+      let crankData = null;
+      if ((flags & 0x20) && dataView.byteLength >= offset + 4) {
+        const revs = dataView.getUint16(offset, true);
+        const eventTime = dataView.getUint16(offset + 2, true);
+        crankData = { revs, eventTime };
+      }
+
+      return { watts, crankData };
+    }
+
+    function computeCadence(slot, crankData, now) {
+      if (!crankData) return null;
+      const state = crankState[slot];
+
+      if (state.lastRevs === null || state.lastEventTime === null) {
+        state.lastRevs = crankData.revs;
+        state.lastEventTime = crankData.eventTime;
+        state.lastChangeTime = now;
+        return null;
+      }
+
+      const deltaRevs = (crankData.revs - state.lastRevs + 65536) % 65536;
+      const deltaTime = (crankData.eventTime - state.lastEventTime + 65536) % 65536;
+
+      if (deltaRevs > 0 && deltaTime > 0) {
+        state.lastRevs = crankData.revs;
+        state.lastEventTime = crankData.eventTime;
+        state.lastChangeTime = now;
+        const rpm = Math.round((deltaRevs / (deltaTime / 1024)) * 60);
+        return (rpm >= 0 && rpm <= 250) ? rpm : null;
+      }
+
+      if (state.lastChangeTime && (now - state.lastChangeTime) > 2500) {
+        return 0;
+      }
+
+      return slot === 1 ? rawCadence1 : rawCadence2;
+    }
+
+    function getTimeSmoothed(buffer, now, windowSeconds) {
+      const cutoff = now - (windowSeconds * 1000);
+      const valid = buffer.filter(item => item.time >= cutoff);
+      if (valid.length === 0) return null;
+      const sum = valid.reduce((acc, item) => acc + item.watts, 0);
+      return Math.round(sum / valid.length);
+    }
+
+    function isStale(lastUpdate, now, timeoutMs = STALE_TIMEOUT_MS) {
+      if (!lastUpdate) return true;
+      return (now - lastUpdate) > timeoutMs;
+    }
+
+    function sanitizeCSVHeader(name, fallback) {
+      if (!name) return fallback;
+      return name.replace(/[;\r\n]/g, ' ').trim() || fallback;
+    }
+
+    function generateCSVContent(data, name1, name2, lang = currentLang) {
+      const cleanName1 = sanitizeCSVHeader(name1, "Powermeter 1");
+      const cleanName2 = sanitizeCSVHeader(name2, "Powermeter 2");
+      const diffHeader = I18N[lang]?.csvDiffCol || "Differenz_W";
+      const cadHeader = I18N[lang]?.csvCadCol || "Cadence_RPM";
+      const header = `Timestamp;${cleanName1} (PM1_W);${cleanName2} (PM2_W);${diffHeader};${cleanName1} (PM1_${cadHeader});${cleanName2} (PM2_${cadHeader})\n`;
+      const rows = data.map(r => `${r.timestamp};${r.pm1};${r.pm2};${r.diff};${r.cad1};${r.cad2}`).join("\n");
+      return header + rows;
+    }
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator && !wakeLock) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (e) {}
+      }
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawChart();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function registerKnownDevice(id, name, type, bleDevice = null, antNum = null) {
+      if (!knownDevices.has(id)) {
+        knownDevices.set(id, { id, name, type, bleDevice, antNum });
+        [1, 2].forEach(slot => {
+          const select = document.getElementById(`selectPM${slot}`);
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    function addDeviceToList(bleDevice) {
+      const name = bleDevice.name || t('unknownDevice', bleDevice.id.slice(0, 6));
+      registerKnownDevice(bleDevice.id, `${name} [BLE]`, 'ble', bleDevice, null);
+    }
+
+    async function scanForPowermeter() {
+      if (!window.isSecureContext) {
+        setStatusKey('statusInsecure');
+        return;
+      }
+      if (!navigator.bluetooth) {
+        setStatusKey('statusNoBT');
+        alert(t('alertNoBT'));
+        return;
+      }
+
+      try {
+        setStatusKey('statusScanning');
+        const optionalServices = [CPS_SERVICE_UUID, FTMS_SERVICE_UUID];
+        const options = {
+          filters: [{ services: [CPS_SERVICE_UUID] }, { services: [FTMS_SERVICE_UUID] }],
+          optionalServices
+        };
+
+        const device = await navigator.bluetooth.requestDevice(options);
+        addDeviceToList(device);
+        setStatusKey('statusFound', device.name || 'Sensor');
+
+        if (!activeSlots[1].deviceId) {
+          document.getElementById('selectPM1').value = device.id;
+          await assignDevice(1, device.id);
+        } else if (!activeSlots[2].deviceId && activeSlots[1].deviceId !== device.id) {
+          document.getElementById('selectPM2').value = device.id;
+          await assignDevice(2, device.id);
+        }
+      } catch (error) {
+        if (error.name !== 'NotFoundError') {
+          setStatusKey('statusScanError', error.message);
+        } else {
+          setStatusKey('statusScanCancelled');
+        }
+      }
+    }
+
+    async function assignDevice(slot, deviceId) {
+      const otherSlot = slot === 1 ? 2 : 1;
+      if (deviceId && activeSlots[otherSlot].deviceId === deviceId) {
+        setStatusKey('statusAlreadyAssigned', otherSlot);
+        document.getElementById(`selectPM${slot}`).value = activeSlots[slot].deviceId || "";
+        return;
+      }
+
+      const current = activeSlots[slot];
+      if (current.type === 'ble' && current.characteristic && current.listener) {
+        try {
+          current.characteristic.removeEventListener('characteristicvaluechanged', current.listener);
+          await current.characteristic.stopNotifications();
+        } catch (e) {}
+      }
+      activeSlots[slot] = { deviceId: null, deviceName: null, type: null, characteristic: null, listener: null };
+      crankState[slot] = { lastRevs: null, lastEventTime: null, lastChangeTime: null };
+
+      if (slot === 1) { rawPower1 = null; rawCadence1 = null; lastUpdate1 = null; buffer1 = []; }
+      if (slot === 2) { rawPower2 = null; rawCadence2 = null; lastUpdate2 = null; buffer2 = []; }
+
+      if (!deviceId) {
+        document.getElementById(`name${slot}`).innerText = t('noSensor');
+        updateDisplay();
+        return;
+      }
+
+      const entry = knownDevices.get(deviceId);
+      if (!entry) return;
+
+      if (entry.type === 'ant' || entry.type === 'demo') {
+        activeSlots[slot] = { deviceId, deviceName: entry.name, type: entry.type, characteristic: null, listener: null };
+        if (slot === 1) recordedPM1Name = entry.name;
+        if (slot === 2) recordedPM2Name = entry.name;
+        document.getElementById(`name${slot}`).innerText = entry.name;
+        setStatusKey('statusConnected', entry.name, slot);
+        requestWakeLock();
+        return;
+      }
+
+      const device = entry.bleDevice;
+      document.getElementById(`name${slot}`).innerText = t('connecting');
+      setStatusKey('statusConnecting', entry.name, slot);
+
+      try {
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(CPS_SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(CPM_CHAR_UUID);
+
+        const listener = (event) => handlePowerData(slot, event.target.value);
+        characteristic.addEventListener('characteristicvaluechanged', listener);
+        await characteristic.startNotifications();
+
+        activeSlots[slot] = { deviceId, deviceName: entry.name, type: 'ble', characteristic, listener };
+
+        if (slot === 1) recordedPM1Name = entry.name;
+        if (slot === 2) recordedPM2Name = entry.name;
+
+        document.getElementById(`name${slot}`).innerText = entry.name;
+        setStatusKey('statusConnected', entry.name, slot);
+        requestWakeLock();
+
+        device.addEventListener('gattserverdisconnected', () => {
+          document.getElementById(`name${slot}`).innerText = t('disconnected');
+          setStatusKey('statusLost', slot);
+          crankState[slot] = { lastRevs: null, lastEventTime: null, lastChangeTime: null };
+          if (slot === 1) { rawPower1 = null; rawCadence1 = null; lastUpdate1 = null; }
+          if (slot === 2) { rawPower2 = null; rawCadence2 = null; lastUpdate2 = null; }
+        }, { once: true });
+
+      } catch (error) {
+        document.getElementById(`name${slot}`).innerText = t('connError');
+        setStatusKey('statusSlotError', slot, error.message);
+      }
+    }
+
+    function pushSensorReading(slot, watts, cadence) {
+      const now = Date.now();
+      if (slot === 1) {
+        rawPower1 = watts;
+        if (cadence !== null && cadence !== undefined) rawCadence1 = cadence;
+        lastUpdate1 = now;
+        buffer1.push({ time: now, watts });
+        buffer1 = buffer1.filter(item => item.time >= now - 6000);
+      } else {
+        rawPower2 = watts;
+        if (cadence !== null && cadence !== undefined) rawCadence2 = cadence;
+        lastUpdate2 = now;
+        buffer2.push({ time: now, watts });
+        buffer2 = buffer2.filter(item => item.time >= now - 6000);
+      }
+      updateDisplay();
+    }
+
+    function handlePowerData(slot, dataView) {
+      const parsed = parseCyclingPower(dataView);
+      if (!parsed) return;
+      const now = Date.now();
+      const cadence = computeCadence(slot, parsed.crankData, now);
+      pushSensorReading(slot, parsed.watts, parsed.crankData ? cadence : null);
+    }
+
+    // =========================================================================
+    // Demo-Modus zum Testen ohne Sensoren
+    // =========================================================================
+    function toggleDemo() {
+      const btn = document.getElementById('btnDemo');
+      if (demoInterval) {
+        clearInterval(demoInterval);
+        demoInterval = null;
+        btn.innerText = t('btnDemoStart');
+        setStatusKey('statusReady');
+        return;
+      }
+
+      registerKnownDevice('demo_1', 'Demo-Referenz (Trainer)', 'demo');
+      registerKnownDevice('demo_2', 'Demo-Pedale (Assioma)', 'demo');
+
+      document.getElementById('selectPM1').value = 'demo_1';
+      assignDevice(1, 'demo_1');
+      document.getElementById('selectPM2').value = 'demo_2';
+      assignDevice(2, 'demo_2');
+
+      btn.innerText = t('btnDemoStop');
+      setStatusKey('statusDemoRunning');
+
+      let baseWatts = 215;
+      demoInterval = setInterval(() => {
+        baseWatts = Math.max(120, Math.min(350, baseWatts + Math.round((Math.random() - 0.5) * 14)));
+        const cad = 88 + Math.round((Math.random() - 0.5) * 4);
+        const w1 = baseWatts + Math.round((Math.random() - 0.5) * 4);
+        const w2 = Math.round(baseWatts * 1.02) + Math.round((Math.random() - 0.5) * 6);
+        if (activeSlots[1].deviceId === 'demo_1') pushSensorReading(1, w1, cad);
+        if (activeSlots[2].deviceId === 'demo_2') pushSensorReading(2, w2, cad);
+      }, 1000);
+    }
+
+    // =========================================================================
+    // ANT+ (WebUSB für Dynastream / Garmin ANT+ USB2 & USB-m Sticks)
+    // =========================================================================
+    const ANT_NETWORK_KEY = [0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45];
+    const antPowerState = new Map();
+    const antCrankTorqueState = new Map();
+    let antUsbDevice = null;
+    let antInEndpoint = 1;
+    let antOutEndpoint = 1;
+    let antRunning = false;
+    let foundFirstAntDevice = null;
+
+    function buildAntMsg(msgId, payload) {
+      const len = payload.length;
+      const frame = new Uint8Array(len + 4);
+      frame[0] = 0xA4;
+      frame[1] = len;
+      frame[2] = msgId;
+      for (let i = 0; i < len; i++) frame[3 + i] = payload[i];
+      let xor = 0;
+      for (let i = 0; i < len + 3; i++) xor ^= frame[i];
+      frame[len + 3] = xor;
+      return frame;
+    }
+
+    function parseAntPowerPayload(deviceNum, data) {
+      if (!data || data.length < 8) return null;
+      const page = data[0];
+
+      // Page 0x10: Standard Power-Only
+      if (page === 0x10) {
+        const eventCount = data[1];
+        const cadence = data[3];
+        const instPower = data[4] | (data[5] << 8);
+        const accumPower = data[6] | (data[7] << 8);
+
+        let watts = instPower;
+        const prev = antPowerState.get(deviceNum);
+        if (prev) {
+          const deltaEvents = (eventCount - prev.eventCount + 256) % 256;
+          const deltaPower = (accumPower - prev.accumPower + 65536) % 65536;
+          if (deltaEvents > 0) {
+            watts = Math.round(deltaPower / deltaEvents);
+          }
+        }
+        antPowerState.set(deviceNum, { eventCount, accumPower });
+
+        return {
+          watts: (watts >= 0 && watts <= 2500) ? watts : instPower,
+          cadence: cadence === 0xFF ? null : cadence
+        };
+      }
+
+      // Page 0x12: Crank Torque
+      if (page === 0x12) {
+        const eventCount = data[1];
+        const cadence = data[3];
+        const period = data[4] | (data[5] << 8);
+        const accumTorque = data[6] | (data[7] << 8);
+
+        const prev = antCrankTorqueState.get(deviceNum);
+        antCrankTorqueState.set(deviceNum, { eventCount, period, accumTorque });
+
+        if (prev) {
+          const deltaEvents = (eventCount - prev.eventCount + 256) % 256;
+          const deltaPeriod = (period - prev.period + 65536) % 65536;
+          const deltaTorque = (accumTorque - prev.accumTorque + 65536) % 65536;
+          if (deltaEvents > 0 && deltaPeriod > 0) {
+            const timeSec = deltaPeriod / 2048.0;
+            const torqueNm = deltaTorque / (32.0 * deltaEvents);
+            const angularVel = (2 * Math.PI * deltaEvents) / timeSec;
+            const watts = Math.round(torqueNm * angularVel);
+            const rpm = Math.round((deltaEvents / timeSec) * 60);
+            if (watts >= 0 && watts <= 2500) {
+              return {
+                watts,
+                cadence: cadence !== 0xFF ? cadence : (rpm <= 250 ? rpm : null)
+              };
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    async function sendAnt(msgId, payload) {
+      if (!antUsbDevice || !antUsbDevice.opened) return;
+      await antUsbDevice.transferOut(antOutEndpoint, buildAntMsg(msgId, payload));
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    async function openAntPowerChannel(ch, deviceNum = 0) {
+      await sendAnt(0x42, [ch, 0x00, 0x00]); // Assign Slave Channel
+      await sendAnt(0x51, [ch, deviceNum & 0xFF, (deviceNum >> 8) & 0xFF, 0x0B, 0x00]); // Device Type 11 (Power)
+      await sendAnt(0x43, [ch, 0xF6, 0x1F]); // Channel Period 8182 (~4.005 Hz)
+      await sendAnt(0x45, [ch, 0x39]);       // RF Frequency 2457 MHz
+      await sendAnt(0x44, [ch, 0x0C]);       // Search Timeout 30s
+      await sendAnt(0x4B, [ch]);             // Open Channel
+    }
+
+    async function connectAntStick() {
+      if (!window.isSecureContext) {
+        setStatusKey('statusInsecure');
+        return;
+      }
+      if (!navigator.usb) {
+        setStatusKey('statusAntNoUSB');
+        return;
+      }
+      try {
+        setStatusKey('statusAntSearching');
+        antUsbDevice = await navigator.usb.requestDevice({
+          filters: [
+            { vendorId: 0x0FCF, productId: 0x1008 },
+            { vendorId: 0x0FCF, productId: 0x1009 },
+            { vendorId: 0x0FCF }
+          ]
+        });
+
+        await antUsbDevice.open();
+        if (antUsbDevice.configuration === null) {
+          await antUsbDevice.selectConfiguration(1);
+        }
+        const iface = antUsbDevice.configuration.interfaces[0];
+        await antUsbDevice.claimInterface(iface.interfaceNumber);
+
+        for (const ep of iface.alternate.endpoints) {
+          if (ep.direction === 'in') antInEndpoint = ep.endpointNumber;
+          if (ep.direction === 'out') antOutEndpoint = ep.endpointNumber;
+        }
+
+        antRunning = true;
+        foundFirstAntDevice = null;
+        document.getElementById('btnAnt').innerText = t('btnAntConnected');
+        readAntLoop();
+
+        await sendAnt(0x4A, [0x00]); // Reset System
+        await new Promise(r => setTimeout(r, 600));
+        await sendAnt(0x6E, [0x00, 0x80]); // Lib Config: Extended Messages
+        await sendAnt(0x46, [0x00, ...ANT_NETWORK_KEY]); // Set ANT+ Network Key 0
+
+        await openAntPowerChannel(0, 0);
+      } catch (err) {
+        antRunning = false;
+        setStatusKey('statusAntError', err.message);
+      }
+    }
+
+    async function readAntLoop() {
+      let rxBuf = [];
+      while (antRunning && antUsbDevice && antUsbDevice.opened) {
+        try {
+          const res = await antUsbDevice.transferIn(antInEndpoint, 64);
+          if (res.data && res.data.byteLength > 0) {
+            const bytes = new Uint8Array(res.data.buffer);
+            for (let i = 0; i < bytes.length; i++) rxBuf.push(bytes[i]);
+
+            while (rxBuf.length >= 4) {
+              if (rxBuf[0] !== 0xA4) { rxBuf.shift(); continue; }
+              const len = rxBuf[1];
+              if (rxBuf.length < len + 4) break;
+              const frame = rxBuf.slice(0, len + 4);
+              rxBuf = rxBuf.slice(len + 4);
+
+              let xor = 0;
+              for (let i = 0; i < len + 3; i++) xor ^= frame[i];
+              if (xor === frame[len + 3]) {
+                handleAntFrame(frame[2], frame.slice(3, 3 + len));
+              }
+            }
+          }
+        } catch (e) {
+          if (antRunning) setStatusKey('statusAntError', e.message);
+          break;
+        }
+      }
+    }
+
+    function handleAntFrame(msgId, payload) {
+      if (msgId === 0x4E && payload.length >= 9) {
+        const ch = payload[0];
+        const data = payload.slice(1, 9);
+
+        let devNum = 0;
+        if (payload.length >= 14 && (payload[9] & 0x80)) {
+          devNum = payload[10] | (payload[11] << 8);
+        }
+
+        if (devNum > 0) {
+          const antId = `ant_${devNum}`;
+          const antName = `ANT+ Power #${devNum}`;
+
+          if (!knownDevices.has(antId)) {
+            registerKnownDevice(antId, antName, 'ant', null, devNum);
+            setStatusKey('statusAntFound', devNum);
+
+            if (!activeSlots[1].deviceId) {
+              document.getElementById('selectPM1').value = antId;
+              assignDevice(1, antId);
+            } else if (!activeSlots[2].deviceId && activeSlots[1].deviceId !== antId) {
+              document.getElementById('selectPM2').value = antId;
+              assignDevice(2, antId);
+            }
+
+            if (ch === 0 && !foundFirstAntDevice) {
+              foundFirstAntDevice = devNum;
+              openAntPowerChannel(1, 0);
+            }
+          }
+
+          const parsed = parseAntPowerPayload(devNum, data);
+          if (parsed) {
+            if (activeSlots[1].deviceId === antId) pushSensorReading(1, parsed.watts, parsed.cadence);
+            if (activeSlots[2].deviceId === antId) pushSensorReading(2, parsed.watts, parsed.cadence);
+          }
+        }
+      }
+    }
+
+    function updateDisplay() {
+      const now = Date.now();
+      const windowSize = parseInt(document.getElementById('smoothingSelect').value, 10);
+
+      const stale1 = isStale(lastUpdate1, now);
+      const stale2 = isStale(lastUpdate2, now);
+
+      const p1 = stale1 ? null : getTimeSmoothed(buffer1, now, windowSize);
+      const p2 = stale2 ? null : getTimeSmoothed(buffer2, now, windowSize);
+      const c1 = stale1 ? null : rawCadence1;
+      const c2 = stale2 ? null : rawCadence2;
+
+      document.getElementById('val1').innerText = p1 !== null ? p1 : '--';
+      document.getElementById('val2').innerText = p2 !== null ? p2 : '--';
+      document.getElementById('cad1').innerText = c1 !== null ? c1 : '--';
+      document.getElementById('cad2').innerText = c2 !== null ? c2 : '--';
+
+      if (p1 !== null && p2 !== null) {
+        const diff = p2 - p1;
+        const sign = diff > 0 ? '+' : '';
+        document.getElementById('diffW').innerText = `${sign}${diff}`;
+
+        if (p1 > 0) {
+          const pct = ((diff / p1) * 100).toFixed(1);
+          document.getElementById('diffPct').innerText = `${diff > 0 ? '+' : ''}${pct}`;
+        } else {
+          document.getElementById('diffPct').innerText = '0.0';
+        }
+      } else {
+        document.getElementById('diffW').innerText = '--';
+        document.getElementById('diffPct').innerText = '--';
+      }
+    }
+
+    setInterval(() => {
+      const now = Date.now();
+      if (isStale(lastUpdate1, now)) { rawPower1 = null; rawCadence1 = null; }
+      if (isStale(lastUpdate2, now)) { rawPower2 = null; rawCadence2 = null; }
+      updateDisplay();
+
+      if (rawPower1 === null && rawPower2 === null) return;
+
+      chartHistory1.push(rawPower1);
+      chartHistory2.push(rawPower2);
+      if (chartHistory1.length > MAX_HISTORY) chartHistory1.shift();
+      if (chartHistory2.length > MAX_HISTORY) chartHistory2.shift();
+      drawChart();
+
+      if (rawPower1 !== null) {
+        sumP1 += rawPower1;
+        countP1++;
+        document.getElementById('avg1').innerText = Math.round(sumP1 / countP1);
+        if (maxP1 === null || rawPower1 > maxP1) {
+          maxP1 = rawPower1;
+          document.getElementById('max1').innerText = maxP1;
+        }
+      }
+      if (rawCadence1 !== null && rawCadence1 > 0) {
+        sumCad1 += rawCadence1;
+        countCad1++;
+        document.getElementById('avgCad1').innerText = Math.round(sumCad1 / countCad1);
+      }
+
+      if (rawPower2 !== null) {
+        sumP2 += rawPower2;
+        countP2++;
+        document.getElementById('avg2').innerText = Math.round(sumP2 / countP2);
+        if (maxP2 === null || rawPower2 > maxP2) {
+          maxP2 = rawPower2;
+          document.getElementById('max2').innerText = maxP2;
+        }
+      }
+      if (rawCadence2 !== null && rawCadence2 > 0) {
+        sumCad2 += rawCadence2;
+        countCad2++;
+        document.getElementById('avgCad2').innerText = Math.round(sumCad2 / countCad2);
+      }
+
+      if (rawPower1 !== null && rawPower2 !== null) {
+        const diff = rawPower2 - rawPower1;
+        sumDiff += diff;
+        sumP1Both += rawPower1;
+        countBoth++;
+        const avgDiff = sumDiff / countBoth;
+        document.getElementById('avgDiffW').innerText = (avgDiff > 0 ? '+' : '') + avgDiff.toFixed(1);
+        document.getElementById('avgDiffPct').innerText = sumP1Both > 0
+          ? ((avgDiff > 0 ? '+' : '') + ((sumDiff / sumP1Both) * 100).toFixed(1))
+          : '0.0';
+
+        const absDiff = Math.abs(diff);
+        if (maxDiffAbs === null || absDiff > maxDiffAbs) {
+          maxDiffAbs = absDiff;
+          document.getElementById('maxDiffW').innerText = maxDiffAbs;
+        }
+      }
+
+      if (isRecording) {
+        const diff = (rawPower1 !== null && rawPower2 !== null) ? (rawPower2 - rawPower1) : '';
+        recordedData.push({
+          timestamp: new Date().toISOString(),
+          pm1: rawPower1 !== null ? rawPower1 : '',
+          pm2: rawPower2 !== null ? rawPower2 : '',
+          diff: diff,
+          cad1: rawCadence1 !== null ? rawCadence1 : '',
+          cad2: rawCadence2 !== null ? rawCadence2 : ''
+        });
+        document.getElementById('btnSave').innerText = t('btnSave', recordedData.length);
+      }
+    }, 1000);
+
+    function drawChart() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (w === 0 || h === 0) return;
+      ctx.clearRect(0, 0, w, h);
+
+      const allVals = [...chartHistory1, ...chartHistory2].filter(v => v !== null);
+      const maxVal = Math.max(250, ...allVals) * 1.1;
+
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#666';
+      ctx.font = '11px sans-serif';
+
+      [0.25, 0.5, 0.75].forEach(ratio => {
+        const y = h - ratio * h;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+        ctx.fillText(`${Math.round(maxVal * ratio)} W`, 6, y - 4);
+      });
+
+      const drawLine = (data, color) => {
+        if (data.length < 2) return;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let started = false;
+
+        data.forEach((val, idx) => {
+          if (val === null) {
+            started = false;
+            return;
+          }
+          const x = (idx / (MAX_HISTORY - 1)) * w;
+          const y = h - (val / maxVal) * h;
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+      };
+
+      drawLine(chartHistory1, '#00d2ff');
+      drawLine(chartHistory2, '#ff7b00');
+    }
+
+    function resetStats() {
+      sumP1 = 0; sumP2 = 0; sumDiff = 0; sumP1Both = 0;
+      countBoth = 0; countP1 = 0; countP2 = 0;
+      sumCad1 = 0; countCad1 = 0; sumCad2 = 0; countCad2 = 0;
+      maxP1 = null; maxP2 = null; maxDiffAbs = null;
+      chartHistory1 = [];
+      chartHistory2 = [];
+      drawChart();
+
+      document.getElementById('avg1').innerText = '--';
+      document.getElementById('avg2').innerText = '--';
+      document.getElementById('avgCad1').innerText = '--';
+      document.getElementById('avgCad2').innerText = '--';
+      document.getElementById('max1').innerText = '--';
+      document.getElementById('max2').innerText = '--';
+      document.getElementById('avgDiffW').innerText = '--';
+      document.getElementById('avgDiffPct').innerText = '--';
+      document.getElementById('maxDiffW').innerText = '--';
+
+      if (isRecording) {
+        recordedData = [];
+        document.getElementById('btnSave').innerText = t('btnSave', 0);
+        setStatusKey('statusResetRec');
+      } else {
+        setStatusKey('statusReset');
+      }
+    }
+
+    function toggleRecording() {
+      const btn = document.getElementById('btnRecord');
+      const saveBtn = document.getElementById('btnSave');
+
+      if (!isRecording) {
+        isRecording = true;
+        recordedData = [];
+        recordedPM1Name = activeSlots[1].deviceName || "Powermeter 1";
+        recordedPM2Name = activeSlots[2].deviceName || "Powermeter 2";
+        resetStats();
+
+        btn.innerText = t('btnRecStop');
+        btn.classList.add('active');
+        saveBtn.disabled = true;
+        saveBtn.innerText = t('btnSave', 0);
+        requestWakeLock();
+        setStatusKey('statusRecRunning');
+      } else {
+        isRecording = false;
+        btn.innerText = t('btnRecNew');
+        btn.classList.remove('active');
+        saveBtn.disabled = recordedData.length === 0;
+        setStatusKey('statusRecStopped', recordedData.length);
+      }
+    }
+
+    function downloadCSV() {
+      if (recordedData.length === 0) return;
+      const name1 = activeSlots[1].deviceName || recordedPM1Name;
+      const name2 = activeSlots[2].deviceName || recordedPM2Name;
+      const csvString = generateCSVContent(recordedData, name1, name2, currentLang);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      const prefix = currentLang === 'de' ? 'powermeter_vergleich' : 'powermeter_comparison';
+      a.download = `${prefix}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function initApp() {
+      applyTranslations();
+      resizeCanvas();
+
+      document.getElementById('btnScan').addEventListener('click', scanForPowermeter);
+      document.getElementById('btnAnt').addEventListener('click', connectAntStick);
+      document.getElementById('btnDemo').addEventListener('click', toggleDemo);
+      document.getElementById('smoothingSelect').addEventListener('change', updateDisplay);
+      document.getElementById('btnLang').addEventListener('click', toggleLanguage);
+      document.getElementById('selectPM1').addEventListener('change', (e) => assignDevice(1, e.target.value));
+      document.getElementById('selectPM2').addEventListener('change', (e) => assignDevice(2, e.target.value));
+      document.getElementById('btnRecord').addEventListener('click', toggleRecording);
+      document.getElementById('btnReset').addEventListener('click', resetStats);
+      document.getElementById('btnSave').addEventListener('click', downloadCSV);
+
+      if (!window.isSecureContext) {
+        setStatusKey('statusInsecure');
+      } else if (!navigator.bluetooth) {
+        setStatusKey('statusNoBT');
+      } else {
+        setStatusKey('statusReady');
+        if (navigator.bluetooth.getDevices) {
+          try {
+            const devices = await navigator.bluetooth.getDevices();
+            devices.forEach(dev => addDeviceToList(dev));
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
