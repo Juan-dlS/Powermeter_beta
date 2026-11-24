@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1216">
+<title>Dual Powermeter</title>
+<style>
+:root{--bg:#0f1216;--card:#181c22;--line:#262c35;--txt:#e8ecf1;--mut:#8a94a3;--a:#4c9aff;--b:#ff9f43;--ok:#3ecf8e;--warn:#f5c542;--err:#ff5c5c}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;position:sticky;top:0;background:rgba(15,18,22,.95);backdrop-filter:blur(6px);z-index:5;border-bottom:1px solid var(--line)}
+h1{font-size:17px;margin:0;font-weight:650}
+h2{font-size:13px;margin:0 0 8px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+main{max-width:1100px;margin:0 auto;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+#anaOut{grid-template-columns:minmax(0,1fr)}
+select{max-width:100%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:#232a33;color:var(--mut);white-space:nowrap}
+.pill.rec{background:rgba(255,92,92,.15);color:var(--err)}
+.pill.pause{background:rgba(245,197,66,.15);color:var(--warn)}
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.meter{border-top:3px solid var(--c)}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.mname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.mstat{font-size:12px;color:var(--mut);min-height:17px}
+.mstat.ok{color:var(--ok)}.mstat.warn{color:var(--warn)}.mstat.err{color:var(--err)}
+.big{font-size:clamp(40px,11vw,72px);font-weight:700;line-height:1;color:var(--c);font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.big small{font-size:.35em;color:var(--mut);font-weight:500}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 8px;margin-top:8px}
+.kv div{display:flex;flex-direction:column}
+.kv span{font-size:11px;color:var(--mut)}
+.kv b{font-size:16px;font-variant-numeric:tabular-nums;font-weight:600}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+button,select{font:inherit;font-size:14px;color:var(--txt);background:#252c36;border:1px solid #333b47;border-radius:8px;padding:8px 12px;cursor:pointer}
+button:hover{background:#2d3541}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:#1f6feb;border-color:#1f6feb}
+button.danger{background:#5a1f24;border-color:#7a2a30}
+button.small{padding:5px 9px;font-size:13px}
+.cmp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.cmp b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.cmp span{font-size:11px;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.timer{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;margin-right:auto}
+label.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut)}
+#chart{width:100%;height:300px;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.sess{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.sess:first-of-type{border-top:0}
+.sess .meta{font-size:13px}
+.sess .meta span{color:var(--mut);display:block;font-size:12px}
+.banner{background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.4);color:#f3dd9a;border-radius:10px;padding:10px 12px;font-size:13px}
+.muted{color:var(--mut);font-size:13px}
+.tabs{display:flex;gap:4px;background:#1b2028;border-radius:10px;padding:3px}
+.tabs button{border:0;background:none;padding:6px 12px;border-radius:8px;color:var(--mut)}
+.tabs button.on{background:#2d3541;color:var(--txt)}
+input[type=number]{font:inherit;font-size:15px;color:var(--txt);background:#252c36;border:1px solid #333b47;border-radius:8px;padding:6px 8px;width:76px}
+label.btn{display:inline-block;font-size:14px;background:#252c36;border:1px solid #333b47;border-radius:8px;padding:8px 12px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600;font-size:12px}
+.tw{overflow-x:auto}
+.fig{position:relative;height:260px}.fig.sq{height:320px}
+.fig canvas{position:absolute;inset:0;width:100%;height:100%}
+.figs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dbar{position:relative;height:10px;background:#232a33;border-radius:3px;min-width:90px}
+.dbar:after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#8a94a3}
+.dbar i{position:absolute;top:0;bottom:0;border-radius:3px}
+.verdict{font-size:15px;margin:10px 0 0}
+.faint td{opacity:.45}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.dlg>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:380px;width:100%}
+.dlg p{margin:0 0 14px;font-size:16px}
+.dlg input{width:100%;font:inherit;font-size:16px;color:var(--txt);background:#252c36;border:1px solid #333b47;border-radius:8px;padding:10px;margin-bottom:14px}
+.dlg .row{justify-content:flex-end}
+@media (max-width:760px){.figs{grid-template-columns:1fr}}
+@media (max-width:480px){h1{display:none}}
+@media (max-width:560px){.kv{grid-template-columns:repeat(2,1fr)}.cmp{grid-template-columns:repeat(2,1fr)}main{padding:8px;gap:8px}.meters{gap:8px}.card{padding:10px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Dual Powermeter</h1>
+  <nav class="tabs"><button data-v="viewRide" class="on">Fahrt</button><button data-v="viewAna">Auswertung</button></nav>
+  <div id="recState" class="pill">Bereit</div>
+</header>
+<main id="viewAna" hidden>
+  <section class="card">
+    <h2>Fahrt auswählen</h2>
+    <div class="row">
+      <select id="anaSel" style="flex:1;min-width:0"></select>
+      <label class="btn">Datei öffnen …<input type="file" id="anaFile" accept=".json,.csv,.txt,text/csv,application/json" hidden></label>
+    </div>
+    <p class="muted" id="anaSrc" style="margin:8px 0">Gespeicherte Fahrt wählen oder eine JSON-/CSV-Datei öffnen (Export dieser App oder eigene CSV mit Spalten wie „…_watt“, „power“, „leistung“; eine Zeile pro Sekunde).</p>
+    <div class="row">
+      <label class="chk">FTP <input type="number" id="ftp" min="50" max="700" step="1"> W</label>
+      <label class="chk">Glättung <select id="anaSmooth"><option value="1">1 s</option><option value="3" selected>3 s</option><option value="10">10 s</option><option value="30">30 s</option></select></label>
+      <label class="chk">Vergleich ab <input type="number" id="anaMin" value="30" min="0" step="10"> W</label>
+      <label class="chk">Versatz B <input type="number" id="anaLag" value="0" step="1" min="-30" max="30"> s</label>
+      <button class="small" id="anaAuto">Versatz auto</button>
+    </div>
+    <div class="row" style="margin-top:10px"><button id="anaCsv" disabled>Auswertung als CSV</button></div>
+  </section>
+  <div id="anaOut" style="display:grid;gap:12px"></div>
+</main>
+<main id="viewRide">
+  <div id="btBanner" class="banner" hidden></div>
+
+  <section class="meters" id="meters"></section>
+
+  <section class="card">
+    <h2>Vergleich A ↔ B</h2>
+    <div class="cmp">
+      <div><b id="cDiff">–</b><span>Δ 10 s (A−B)</span></div>
+      <div><b id="cPct">–</b><span>Δ 10 s in %</span></div>
+      <div><b id="cSessDiff">–</b><span>Δ Ø Aufzeichnung</span></div>
+      <div><b id="cFactor">–</b><span>Faktor A/B (Ø)</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Aufzeichnung</h2>
+    <div class="row">
+      <div class="timer" id="timer">0:00:00</div>
+      <button id="bStart" class="primary">● Start</button>
+      <button id="bPause" disabled>❚❚ Pause</button>
+      <button id="bLap" disabled>⚑ Runde</button>
+      <button id="bStop" class="danger" disabled>■ Stopp</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="chk"><input type="checkbox" id="optWake"> Bildschirm anlassen</label>
+      <label class="chk"><input type="checkbox" id="optKeep"> Hintergrund-Modus</label>
+    </div>
+    <p class="muted" id="bgInfo" style="margin:8px 0 0"></p>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Verlauf</h2>
+      <div class="row">
+        <select id="optWin" title="Zeitfenster">
+          <option value="60">1 min</option><option value="300" selected>5 min</option>
+          <option value="600">10 min</option><option value="1800">30 min</option><option value="3600">60 min</option>
+        </select>
+        <select id="optSmooth" title="Glättung">
+          <option value="0">roh</option><option value="3" selected>3 s</option><option value="10">10 s</option><option value="30">30 s</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="optCad"> Kadenz</label>
+      </div>
+    </div>
+    <canvas id="chart" style="margin-top:8px"></canvas>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Gespeicherte Aufzeichnungen</h2>
+      <select id="optCsv" title="CSV-Format">
+        <option value="de">CSV: Excel (DE, ; und ,)</option>
+        <option value="std">CSV: Standard (, und .)</option>
+      </select>
+    </div>
+    <div id="sessions" style="margin-top:8px"><p class="muted">Noch keine Aufzeichnungen.</p></div>
+  </section>
+
+  <p class="muted" style="text-align:center">Daten werden laufend lokal im Browser (IndexedDB) gesichert – auch bei Absturz oder geschlossenem Tab bleibt die Aufzeichnung bis zum letzten Speicherpunkt (≤ 5 s) erhalten.</p>
+</main>
+
+<div class="dlg" id="dlg" hidden><div><p id="dlgMsg"></p><input id="dlgIn" hidden><div class="row"><button id="dlgNo">Abbrechen</button><button id="dlgOk" class="primary">OK</button></div></div></div>
+<script>
+'use strict';
+/* ================= Konstanten & Zustand ================= */
+const COLORS = ['#4c9aff', '#ff9f43'];
+const STALE_MS = 3000;          // ab hier gilt ein Wert als veraltet
+const BUF_MS = 3600e3;          // Live-Puffer: 60 min
+const meters = [0, 1].map(i => ({
+  i, label: i ? 'B' : 'A', color: COLORS[i], name: '', device: null, char: null, onValue: null,
+  battery: null, status: 'nicht verbunden', statusCls: '', manualDisconnect: false, demoTimer: null,
+  power: null, cadence: null, balance: null, balLeft: false, lastT: 0, crank: null, lastCrankMoveT: 0,
+  buf: [], reconnectTry: 0, rcTimer: null, demo: null
+}));
+let rec = null;                 // aktive Aufzeichnung
+let sessionsCache = [];
+
+const $ = id => document.getElementById(id);
+// Eigene Dialoge statt alert/confirm/prompt (die in eingebetteten Vorschauen blockiert werden)
+function ask(msg, { ok = 'OK', cancel = 'Abbrechen', input = null, danger = false } = {}) {
+  return new Promise(res => {
+    $('dlgMsg').textContent = msg; $('dlgOk').textContent = ok; $('dlgOk').className = danger ? 'danger' : 'primary';
+    $('dlgNo').hidden = !cancel; if (cancel) $('dlgNo').textContent = cancel;
+    const inp = $('dlgIn'); inp.hidden = input == null; if (input != null) inp.value = input;
+    $('dlg').hidden = false; if (input != null) setTimeout(() => inp.focus(), 50);
+    const done = v => { $('dlg').hidden = true; $('dlgOk').onclick = $('dlgNo').onclick = inp.onkeydown = null; res(v); };
+    $('dlgOk').onclick = () => done(input != null ? inp.value : true);
+    $('dlgNo').onclick = () => done(input != null ? null : false);
+    inp.onkeydown = e => { if (e.key === 'Enter') $('dlgOk').click(); };
+  });
+}
+const notify = msg => ask(msg, { cancel: null });
+const fmtDur = s => { s = Math.max(0, Math.floor(s)); return `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
+const r0 = v => v == null || !isFinite(v) ? '–' : Math.round(v);
+
+/* ================= 1-Hz-Serie mit Statistik (eventgetrieben, läuft auch im Hintergrund) ================= */
+class Series {
+  constructor() { this.p = []; this.c = []; this.b = []; this.cur = null; this.lastData = -1;
+    this.lp = null; this.lc = null; this.lb = null; this.sumE = 0; this.nP = 0; this.max = 0;
+    this.roll = []; this.rollSum = 0; this.np4 = 0; this.npN = 0; }
+  add(tMs, p, c, b) {
+    const s = Math.floor(tMs / 1000);
+    if (this.cur && s <= this.cur.s) { this.cur.sp += p; this.cur.n++; if (c != null) this.cur.c = c; if (b != null) this.cur.b = b; return; }
+    if (this.cur) this._commit();
+    this.cur = { s, sp: p, n: 1, c, b };
+  }
+  finish() { if (this.cur) this._commit(); this.cur = null; }
+  _commit() {
+    const { s, sp, n, c, b } = this.cur;
+    while (this.p.length < s) {           // Lücken: bis 3 s mit letztem Wert füllen, sonst null (Aussetzer)
+      const gap = this.p.length - this.lastData;
+      if (this.lastData >= 0 && gap <= 3) this._push(this.lp, this.lc, this.lb); else this._push(null, null, null);
+    }
+    const p = sp / n;
+    this._push(p, c, b); this.lastData = s; this.lp = p; this.lc = c; this.lb = b;
+  }
+  _push(p, c, b) {
+    this.p.push(p == null ? null : Math.round(p)); this.c.push(c ?? null); this.b.push(b ?? null);
+    if (p != null) { this.sumE += p; this.nP++; if (p > this.max) this.max = p; }
+    const v = p ?? 0; this.roll.push(v); this.rollSum += v;
+    if (this.roll.length > 30) this.rollSum -= this.roll.shift();
+    if (this.roll.length === 30) { this.np4 += (this.rollSum / 30) ** 4; this.npN++; }
+  }
+  get avg() { return this.nP ? this.sumE / this.nP : null; }
+  get np() { return this.npN ? (this.np4 / this.npN) ** 0.25 : null; }
+  get kj() { return this.sumE / 1000; }
+}
+
+/* ================= Bluetooth: Cycling Power Measurement (0x2A63) ================= */
+function parseCP(dv) {
+  let o = 0; const f = dv.getUint16(o, true); o += 2;
+  const r = { power: dv.getInt16(o, true), balance: null, balLeft: false, crankRevs: null, crankTime: null }; o += 2;
+  if (f & 0x01) { r.balance = dv.getUint8(o) / 2; r.balLeft = !!(f & 0x02); o += 1; }
+  if (f & 0x04) o += 2;                         // Accumulated Torque
+  if (f & 0x10) o += 6;                         // Wheel Revolution Data
+  if ((f & 0x20) && dv.byteLength >= o + 4) {   // Crank Revolution Data
+    r.crankRevs = dv.getUint16(o, true); r.crankTime = dv.getUint16(o + 2, true); o += 4;
+  }
+  return r;
+}
+
+function onValue(m, dv) {
+  let r; try { r = parseCP(dv); } catch (e) { return; }
+  const now = Date.now();
+  if (r.crankRevs != null) {
+    const c = m.crank;
+    if (c) {
+      const dRev = (r.crankRevs - c.revs) & 0xFFFF, dT = ((r.crankTime - c.time) & 0xFFFF) / 1024;
+      if (dRev > 0 && dT > 0 && dT <= 6) { const cad = dRev / dT * 60; if (cad < 250) m.cadence = Math.round(cad); m.lastCrankMoveT = now; }
+      else if (now - m.lastCrankMoveT > 3000) m.cadence = 0;
+    }
+    m.crank = { revs: r.crankRevs, time: r.crankTime };
+  }
+  m.power = r.power; m.balance = r.balance; m.balLeft = r.balLeft; m.lastT = now;
+  m.buf.push([now, r.power, m.cadence]);
+  if (m.buf.length % 200 === 0) { const k = m.buf.findIndex(x => x[0] >= now - BUF_MS); if (k > 0) m.buf.splice(0, k); }
+  if (rec && !rec.paused) {
+    const t = now - rec.start - rec.pausedMs;
+    rec.pending.push([t, m.i, r.power, m.cadence, r.balance]);
+    rec.series[m.i].add(t, r.power, m.cadence, r.balance);
+    maybeFlush(now);
+  }
+  updateMediaSession(now);
+}
+
+function setStatus(m, txt, cls = '') { m.status = txt; m.statusCls = cls; renderMeterStatic(m); }
+
+async function connect(m) {
+  if (!navigator.bluetooth) { notify('Web Bluetooth ist in diesem Browser nicht verfügbar.'); return; }
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: ['cycling_power'] }], optionalServices: ['battery_service'] });
+    if (meters.some(o => o !== m && o.device && o.device.id === dev.id)) { notify(`„${dev.name}“ ist bereits als Powermeter ${meters.find(o => o.device && o.device.id === dev.id).label} verbunden.`); return; }
+    stopDemo(m);
+    m.device = dev; m.name = localStorage.getItem('pmname_' + dev.id) || dev.name || 'Powermeter'; m.manualDisconnect = false;
+    dev.addEventListener('gattserverdisconnected', () => onDisconnected(m));
+    await setupGatt(m);
+  } catch (e) {
+    if (e.name !== 'NotFoundError') setStatus(m, 'Fehler: ' + e.message, 'err');
+  }
+}
+
+async function setupGatt(m) {
+  setStatus(m, 'verbinde …', 'warn');
+  const server = await m.device.gatt.connect();
+  const svc = await server.getPrimaryService('cycling_power');
+  const ch = await svc.getCharacteristic('cycling_power_measurement');
+  if (m.char && m.onValue) m.char.removeEventListener('characteristicvaluechanged', m.onValue);
+  m.char = ch; m.onValue = e => onValue(m, e.target.value);
+  ch.addEventListener('characteristicvaluechanged', m.onValue);
+  await ch.startNotifications();
+  m.crank = null; m.reconnectTry = 0;
+  setStatus(m, 'verbunden', 'ok');
+  readBattery(m, server);
+}
+
+async function readBattery(m, server) {
+  try {
+    const c = await (await server.getPrimaryService('battery_service')).getCharacteristic('battery_level');
+    m.battery = (await c.readValue()).getUint8(0);
+    try { c.addEventListener('characteristicvaluechanged', e => { m.battery = e.target.value.getUint8(0); }); await c.startNotifications(); } catch (_) {}
+  } catch (_) {}
+}
+
+function onDisconnected(m) {
+  if (m.manualDisconnect || !m.device) { setStatus(m, 'nicht verbunden'); return; }
+  setStatus(m, 'Verbindung verloren – verbinde neu …', 'warn');
+  scheduleReconnect(m);
+}
+
+function scheduleReconnect(m) {
+  const delay = Math.min(30000, 1000 * 2 ** m.reconnectTry++);
+  clearTimeout(m.rcTimer);
+  m.rcTimer = setTimeout(async () => {
+    if (m.manualDisconnect || !m.device) return;
+    try { await setupGatt(m); } catch (_) { setStatus(m, `Neuverbindung fehlgeschlagen – nächster Versuch …`, 'warn'); scheduleReconnect(m); }
+  }, delay);
+}
+
+function disconnect(m) {
+  m.manualDisconnect = true; clearTimeout(m.rcTimer); stopDemo(m);
+  if (m.device && m.device.gatt && m.device.gatt.connected) m.device.gatt.disconnect();
+  m.device = null; m.char = null; m.power = null; m.cadence = null; m.balance = null; m.battery = null; m.name = '';
+  setStatus(m, 'nicht verbunden');
+}
+
+/* ================= Demo-Modus (simuliertes Powermeter, läuft durch denselben Parser) ================= */
+function startDemo(m) {
+  disconnect(m); m.manualDisconnect = false; m.name = 'Demo ' + m.label;
+  m.demo = { rf: 0, lastRevs: 0, lastEvt: Date.now() / 1000 };
+  setStatus(m, 'Demo-Daten', 'ok');
+  m.demoTimer = setInterval(() => {
+    const t = Date.now() / 1000, d = m.demo;
+    const base = 230 + 70 * Math.sin(t / 25) + 35 * Math.sin(t / 4.3) + (Math.sin(t / 90) > 0.85 ? 250 : 0);
+    const p = Math.max(0, Math.round(base * (m.i ? 0.965 : 1) + (Math.random() - 0.5) * 30));
+    const cad = 88 + 6 * Math.sin(t / 15);
+    d.rf += cad / 60 * 0.25;
+    if (Math.floor(d.rf) !== d.lastRevs) { d.lastRevs = Math.floor(d.rf); d.lastEvt = t - (d.rf - d.lastRevs) / (cad / 60); }
+    const dv = new DataView(new ArrayBuffer(9));
+    dv.setUint16(0, 0x01 | 0x02 | 0x20, true); dv.setInt16(2, p, true);
+    dv.setUint8(4, Math.round((50 + 2 * Math.sin(t / 30)) * 2));
+    dv.setUint16(5, d.lastRevs & 0xFFFF, true); dv.setUint16(7, Math.round(d.lastEvt * 1024) & 0xFFFF, true);
+    onValue(m, dv);
+  }, 250);
+  m.battery = 100;
+}
+function stopDemo(m) { if (m.demoTimer) { clearInterval(m.demoTimer); m.demoTimer = null; } m.demo = null; }
+
+/* ================= IndexedDB-Speicherung ================= */
+const DB = {
+  db: null,
+  open() { return new Promise((res, rej) => {
+    const r = indexedDB.open('dual-powermeter', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('sessions', { keyPath: 'id' }); d.createObjectStore('chunks', { autoIncrement: true }).createIndex('sid', 'sid'); };
+    r.onsuccess = () => { this.db = r.result; res(); }; r.onerror = () => rej(r.error);
+  }); },
+  tx(store, mode, fn) { return new Promise((res, rej) => { const t = this.db.transaction(store, mode); const out = fn(t.objectStore(store)); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error); }); },
+  put(store, v) { return this.tx(store, 'readwrite', s => s.put(v)); },
+  all(store) { return this.tx(store, 'readonly', s => s.getAll()); },
+  chunks(sid) { return this.tx('chunks', 'readonly', s => s.index('sid').getAll(sid)); },
+  async del(sid) {
+    await this.tx('sessions', 'readwrite', s => s.delete(sid));
+    await new Promise((res, rej) => { const t = this.db.transaction('chunks', 'readwrite'); const req = t.objectStore('chunks').index('sid').openKeyCursor(IDBKeyRange.only(sid));
+      req.onsuccess = () => { const c = req.result; if (c) { t.objectStore('chunks').delete(c.primaryKey); c.continue(); } }; t.oncomplete = res; t.onerror = () => rej(t.error); });
+  }
+};
+
+function sessionMeta() {
+  return { id: rec.id, start: rec.start, end: rec.end || null, status: rec.status, pausedMs: rec.pausedMs, markers: rec.markers,
+    names: meters.map(m => m.name || m.label), durationS: rec.series.reduce((a, s) => Math.max(a, s.p.length), 0),
+    summary: rec.series.map(s => ({ avg: s.avg, np: s.np, max: s.max, kj: s.kj })) };
+}
+
+function maybeFlush(now) { if (rec && (rec.pending.length >= 50 || now - rec.lastFlush > 5000)) flush(); }
+async function flush() {
+  if (!rec || !DB.db) return;
+  rec.lastFlush = Date.now();
+  const batch = rec.pending; rec.pending = [];
+  try {
+    if (batch.length) await DB.put('chunks', { sid: rec.id, seq: ++rec.seq, ev: batch });
+    await DB.put('sessions', sessionMeta());
+    if (!document.hidden) refreshSessions();
+  } catch (e) { rec.pending = batch.concat(rec.pending); console.error(e); }
+}
+
+/* ================= Aufzeichnung steuern ================= */
+function startRec() {
+  rec = { id: Date.now(), start: Date.now(), pausedMs: 0, paused: false, pauseAt: 0, markers: [], pending: [], seq: 0,
+    lastFlush: Date.now(), status: 'recording', series: [new Series(), new Series()] };
+  flush(); updateRecUi(); refreshSessions();
+}
+function togglePause() {
+  if (!rec) return;
+  if (rec.paused) { rec.pausedMs += Date.now() - rec.pauseAt; rec.paused = false; }
+  else { rec.paused = true; rec.pauseAt = Date.now(); rec.series.forEach(s => s.finish()); }
+  flush(); updateRecUi();
+}
+function lap() { if (!rec || rec.paused) return; rec.markers.push(Date.now() - rec.start - rec.pausedMs); flush(); flashLap(); }
+async function stopRec() {
+  if (!rec || !(await ask('Aufzeichnung beenden und speichern?', { ok: 'Beenden' }))) return;
+  if (rec.paused) togglePause();
+  rec.series.forEach(s => s.finish()); rec.status = 'done'; rec.end = Date.now();
+  await flush(); rec = null; updateRecUi(); refreshSessions();
+}
+function flashLap() { const b = $('bLap'); b.textContent = `⚑ Runde ${rec.markers.length + 2}`; }
+
+function updateRecUi() {
+  const st = $('recState');
+  $('bStart').disabled = !!rec; $('bPause').disabled = !rec; $('bLap').disabled = !rec || rec.paused; $('bStop').disabled = !rec;
+  $('bPause').textContent = rec && rec.paused ? '▶ Weiter' : '❚❚ Pause';
+  if (!rec) { st.textContent = 'Bereit'; st.className = 'pill'; $('bLap').textContent = '⚑ Runde'; }
+  else if (rec.paused) { st.textContent = 'Pausiert'; st.className = 'pill pause'; }
+  else { st.textContent = '● Aufnahme'; st.className = 'pill rec'; if (!rec.markers.length) $('bLap').textContent = '⚑ Runde 2'; }
+}
+
+/* ================= Export ================= */
+async function loadSession(id) {
+  if (rec && rec.id === id) await flush();
+  const meta = (await DB.all('sessions')).find(s => s.id === id);
+  const chunks = (await DB.chunks(id)).sort((a, b) => a.seq - b.seq);
+  const events = chunks.flatMap(c => c.ev);
+  return { meta, events };
+}
+function buildSeries(events) {
+  const s = [new Series(), new Series()];
+  for (const e of events) s[e[1]].add(e[0], e[2], e[3], e[4]);
+  s.forEach(x => x.finish()); return s;
+}
+function csvFmt() { return $('optCsv').value === 'de' ? { sep: ';', num: v => String(v).replace('.', ',') } : { sep: ',', num: v => String(v) }; }
+const cell = (f, v) => v == null ? '' : f.num(typeof v === 'number' ? +v.toFixed(1) : v);
+function fileStamp(ts) { const d = new Date(ts), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; }
+function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+
+async function exportCsv(id) {
+  const { meta, events } = await loadSession(id); const s = buildSeries(events); const f = csvFmt();
+  const [na, nb] = meta.names; const n = Math.max(s[0].p.length, s[1].p.length);
+  const laps = (meta.markers || []).map(t => Math.floor(t / 1000));
+  const head = ['sekunde', 'zeit', 'runde', `${na}_watt`, `${na}_kadenz`, `${na}_balance_L`, `${nb}_watt`, `${nb}_kadenz`, `${nb}_balance_L`, 'diff_watt'];
+  const rows = [head.join(f.sep)];
+  for (let i = 0; i < n; i++) {
+    const a = s[0].p[i], b = s[1].p[i];
+    const lapNo = 1 + laps.filter(x => x <= i).length;
+    rows.push([i, fmtDur(i), lapNo, cell(f, a), cell(f, s[0].c[i]), cell(f, s[0].b[i]), cell(f, b), cell(f, s[1].c[i]), cell(f, s[1].b[i]), a != null && b != null ? a - b : ''].join(f.sep));
+  }
+  download(`powermeter_${fileStamp(meta.start)}_1Hz.csv`, '﻿' + rows.join('\r\n'), 'text/csv');
+}
+async function exportRaw(id) {
+  const { meta, events } = await loadSession(id); const f = csvFmt();
+  const rows = [['t_ms', 'powermeter', 'watt', 'kadenz', 'balance_L'].join(f.sep)];
+  for (const e of events) rows.push([e[0], meta.names[e[1]], e[2], cell(f, e[3]), cell(f, e[4])].join(f.sep));
+  download(`powermeter_${fileStamp(meta.start)}_roh.csv`, '﻿' + rows.join('\r\n'), 'text/csv');
+}
+async function exportJson(id) {
+  const { meta, events } = await loadSession(id);
+  download(`powermeter_${fileStamp(meta.start)}.json`, JSON.stringify({ ...meta, startISO: new Date(meta.start).toISOString(), eventFormat: ['t_ms', 'meterIndex', 'watt', 'kadenz', 'balanceL'], events }), 'application/json');
+}
+
+async function refreshSessions() {
+  if (!DB.db) return;
+  sessionsCache = (await DB.all('sessions')).sort((a, b) => b.id - a.id);
+  const el = $('sessions');
+  if (!sessionsCache.length) { el.innerHTML = '<p class="muted">Noch keine Aufzeichnungen.</p>'; return; }
+  el.innerHTML = '';
+  fillAnaSelect();
+  for (const s of sessionsCache) {
+    const live = rec && rec.id === s.id;
+    const st = live ? '● läuft' : s.status === 'done' ? '' : '⚠ unterbrochen (wiederhergestellt)';
+    const sum = (s.summary || []).map((x, i) => x && x.avg != null ? `${s.names[i]}: Ø ${r0(x.avg)} W, NP ${r0(x.np)} W` : null).filter(Boolean).join(' · ');
+    const d = document.createElement('div'); d.className = 'sess';
+    d.innerHTML = `<div class="meta"><b>${new Date(s.start).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}</b> · ${fmtDur(s.durationS || 0)} ${st ? `<em style="color:var(--warn);font-style:normal">${st}</em>` : ''}<span>${sum || 'keine Daten'}</span></div>
+      <div class="row">${live ? '' : '<button class="small primary" data-a="ana">Auswerten</button>'}<button class="small" data-a="csv">CSV 1 Hz</button><button class="small" data-a="raw">Rohdaten</button><button class="small" data-a="json">JSON</button>${live ? '' : '<button class="small danger" data-a="del">Löschen</button>'}</div>`;
+    d.querySelector('[data-a=csv]').onclick = () => exportCsv(s.id);
+    d.querySelector('[data-a=raw]').onclick = () => exportRaw(s.id);
+    d.querySelector('[data-a=json]').onclick = () => exportJson(s.id);
+    const anaB = d.querySelector('[data-a=ana]');
+    if (anaB) anaB.onclick = () => { showView('viewAna'); $('anaSel').value = 's' + s.id; loadAnaFromSession(s.id); };
+    const del = d.querySelector('[data-a=del]');
+    if (del) del.onclick = async () => { if (await ask('Diese Aufzeichnung endgültig löschen? Das kann nicht rückgängig gemacht werden.', { ok: 'Löschen', danger: true })) { await DB.del(s.id); refreshSessions(); } };
+    el.appendChild(d);
+  }
+}
+
+/* ================= Hintergrundbetrieb ================= */
+let wakeLock = null;
+async function setWake(on) {
+  try {
+    if (on && 'wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { console.warn(e); }
+}
+let keepAudio = null, lastMs = 0;
+function silentWav(sec = 5, rate = 8000) {
+  const n = sec * rate, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, i % 2 ? 1 : -1, true);   // unhörbar (Amplitude 1/32768)
+  return new Blob([buf], { type: 'audio/wav' });
+}
+async function setKeepAlive(on) {
+  if (on) {
+    if (!keepAudio) { keepAudio = new Audio(URL.createObjectURL(silentWav())); keepAudio.loop = true; }
+    try { await keepAudio.play(); } catch (e) { $('optKeep').checked = false; notify('Audio konnte nicht gestartet werden: ' + e.message); }
+    if ('mediaSession' in navigator) navigator.mediaSession.setActionHandler('pause', () => {});
+  } else if (keepAudio) keepAudio.pause();
+}
+function updateMediaSession(now) {
+  if (!keepAudio || keepAudio.paused || !('mediaSession' in navigator) || now - lastMs < 2000) return;
+  lastMs = now;
+  const t = meters.map(m => `${m.label} ${m.power != null && now - m.lastT < STALE_MS ? m.power : '–'} W`).join(' · ');
+  const sub = rec ? (rec.paused ? 'Pausiert' : 'Aufnahme ' + fmtDur((now - rec.start - rec.pausedMs) / 1000)) : 'Keine Aufnahme';
+  try { navigator.mediaSession.metadata = new MediaMetadata({ title: t, artist: sub, album: 'Dual Powermeter' }); } catch (_) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) flush();
+  else { if ($('optWake').checked && !wakeLock) setWake(true); render(); }
+});
+window.addEventListener('pagehide', flush);
+window.addEventListener('beforeunload', e => { if (rec) { flush(); e.preventDefault(); e.returnValue = ''; } });
+
+/* ================= Anzeige ================= */
+function buildMeterCards() {
+  $('meters').innerHTML = meters.map(m => `
+  <div class="card meter" style="--c:${m.color}" id="m${m.i}">
+    <div class="mhead"><div class="mname" title="Antippen zum Umbenennen" id="mn${m.i}">${m.label}</div><span class="pill" id="mbat${m.i}" hidden></span></div>
+    <div class="mstat" id="ms${m.i}"></div>
+    <div class="big"><span id="mp${m.i}">–</span> <small>W</small></div>
+    <div class="kv">
+      <div><span>3 s</span><b id="m3${m.i}">–</b></div>
+      <div><span>Kadenz</span><b id="mc${m.i}">–</b></div>
+      <div><span>Balance L/R</span><b id="mb${m.i}">–</b></div>
+      <div><span>Ø</span><b id="ma${m.i}">–</b></div>
+      <div><span>NP</span><b id="mnp${m.i}">–</b></div>
+      <div><span>Max</span><b id="mx${m.i}">–</b></div>
+      <div><span>Arbeit</span><b id="mk${m.i}">–</b></div>
+    </div>
+    <div class="btns">
+      <button class="primary small" id="bc${m.i}">Verbinden</button>
+      <button class="small" id="bd${m.i}">Trennen</button>
+      <button class="small" id="bdemo${m.i}">Demo</button>
+    </div>
+  </div>`).join('');
+  meters.forEach(m => {
+    $('bc' + m.i).onclick = () => connect(m);
+    $('bd' + m.i).onclick = () => disconnect(m);
+    $('bdemo' + m.i).onclick = () => m.demo ? disconnect(m) : startDemo(m);
+    $('mn' + m.i).onclick = async () => {
+      if (!m.device && !m.demo) return;
+      const n = await ask('Name für dieses Powermeter:', { input: m.name, ok: 'Speichern' }); if (!n || !n.trim()) return;
+      m.name = n.trim(); if (m.device) localStorage.setItem('pmname_' + m.device.id, m.name); renderMeterStatic(m);
+    };
+    renderMeterStatic(m);
+  });
+  $('legend').innerHTML = meters.map(m => `<span><i style="background:${m.color}"></i>${m.label}</span>`).join('') + '<span><i style="background:#8a94a3;height:1px"></i>Kadenz (gestrichelt)</span>';
+}
+function renderMeterStatic(m) {
+  const n = $('mn' + m.i); if (!n) return;
+  n.textContent = m.name ? `${m.label} · ${m.name}` : m.label;
+  const s = $('ms' + m.i); s.textContent = m.status; s.className = 'mstat ' + m.statusCls;
+  const connected = !!(m.device || m.demo);
+  $('bc' + m.i).disabled = !navigator.bluetooth; $('bd' + m.i).disabled = !connected;
+  $('bdemo' + m.i).textContent = m.demo ? '■ Demo stoppen' : 'Demo';
+  $('legend').querySelectorAll('span')[m.i] && ($('legend').querySelectorAll('span')[m.i].lastChild.textContent = m.name || m.label);
+}
+function avgWindow(m, ms, now) {
+  let s = 0, n = 0;
+  for (let k = m.buf.length - 1; k >= 0 && m.buf[k][0] >= now - ms; k--) { s += m.buf[k][1]; n++; }
+  return n ? s / n : null;
+}
+function render() {
+  if (document.hidden || $('viewRide').hidden) return;
+  const now = Date.now();
+  meters.forEach(m => {
+    const fresh = m.power != null && now - m.lastT < STALE_MS;
+    $('mp' + m.i).textContent = fresh ? m.power : '–';
+    $('m3' + m.i).textContent = r0(fresh ? avgWindow(m, 3000, now) : null);
+    $('mc' + m.i).textContent = fresh && m.cadence != null ? m.cadence : '–';
+    $('mb' + m.i).textContent = fresh && m.balance != null ? (m.balLeft ? `${Math.round(m.balance)}/${Math.round(100 - m.balance)}` : `${Math.round(m.balance)} %`) : '–';
+    const s = rec && rec.series[m.i];
+    $('ma' + m.i).textContent = r0(s && s.avg); $('mnp' + m.i).textContent = r0(s && s.np);
+    $('mx' + m.i).textContent = s && s.nP ? Math.round(s.max) : '–';
+    $('mk' + m.i).textContent = s && s.nP ? Math.round(s.kj) + ' kJ' : '–';
+    const bat = $('mbat' + m.i); bat.hidden = m.battery == null; if (m.battery != null) bat.textContent = '🔋 ' + m.battery + ' %';
+  });
+  // Vergleich
+  const a10 = meters[0].lastT > now - STALE_MS ? avgWindow(meters[0], 10000, now) : null;
+  const b10 = meters[1].lastT > now - STALE_MS ? avgWindow(meters[1], 10000, now) : null;
+  if (a10 != null && b10 != null) {
+    const d = a10 - b10; $('cDiff').textContent = (d > 0 ? '+' : '') + Math.round(d) + ' W';
+    $('cPct').textContent = b10 > 20 ? (d > 0 ? '+' : '') + (d / b10 * 100).toFixed(1) + ' %' : '–';
+  } else { $('cDiff').textContent = '–'; $('cPct').textContent = '–'; }
+  if (rec) {
+    const [sa, sb] = rec.series; let ta = 0, tb = 0;
+    const n = Math.min(sa.p.length, sb.p.length);
+    for (let i = 0; i < n; i++) if (sa.p[i] > 0 && sb.p[i] > 0) { ta += sa.p[i]; tb += sb.p[i]; }
+    $('cSessDiff').textContent = tb ? ((ta - tb) / tb * 100 > 0 ? '+' : '') + ((ta - tb) / tb * 100).toFixed(1) + ' %' : '–';
+    $('cFactor').textContent = tb ? (ta / tb).toFixed(3) : '–';
+    $('timer').textContent = fmtDur(((rec.paused ? rec.pauseAt : now) - rec.start - rec.pausedMs) / 1000);
+  }
+  drawChart(now);
+}
+
+/* ================= Chart (Canvas, ohne Bibliothek) ================= */
+const cv = $('chart'), ctx = cv.getContext('2d');
+function drawChart(now) {
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const win = +$('optWin').value * 1000, sm = +$('optSmooth').value * 1000, showCad = $('optCad').checked;
+  const L = 40, R = showCad ? 34 : 8, T = 8, B = 22, pw = W - L - R, ph = H - T - B, t0 = now - win;
+  // geglättete Linien berechnen
+  const lines = meters.map(m => {
+    const pts = []; let j = 0, sum = 0;
+    let st = m.buf.findIndex(x => x[0] >= t0 - sm); if (st < 0) return pts;
+    j = st;
+    for (let k = st; k < m.buf.length; k++) {
+      const [t, p, c] = m.buf[k]; sum += p;
+      while (m.buf[j][0] < t - sm) { sum -= m.buf[j][1]; j++; }
+      if (t >= t0) pts.push([t, sm ? sum / (k - j + 1) : p, c]);
+    }
+    return pts;
+  });
+  let ymax = 100; lines.forEach(l => l.forEach(p => { if (p[1] > ymax) ymax = p[1]; }));
+  ymax = Math.ceil(ymax * 1.08 / 100) * 100;
+  const X = t => L + (t - t0) / win * pw, Y = v => T + ph - v / ymax * ph, Yc = v => T + ph - v / 150 * ph;
+  // Raster
+  ctx.font = '11px system-ui'; ctx.fillStyle = '#8a94a3'; ctx.strokeStyle = '#262c35'; ctx.lineWidth = 1;
+  const step = ymax <= 400 ? 50 : ymax <= 800 ? 100 : 200;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= ymax; v += step) { const y = Math.round(Y(v)) + .5; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); ctx.fillText(v, L - 5, y); }
+  if (showCad) { ctx.textAlign = 'left'; for (let v = 0; v <= 150; v += 50) ctx.fillText(v, L + pw + 5, Yc(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const ts = win / 5;
+  for (let k = 0; k <= 5; k++) { const t = now - k * ts, x = X(t), s = Math.round(k * ts / 1000); ctx.fillText(k ? `−${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : 'jetzt', Math.min(Math.max(x, L + 14), L + pw - 14), T + ph + 5); }
+  // Linien
+  ctx.save(); ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+  lines.forEach((pts, i) => {
+    const draw = (val, yf) => { ctx.beginPath(); let prev = null;
+      for (const p of pts) { const v = val(p); if (v == null) { prev = null; continue; } const x = X(p[0]), y = yf(v);
+        if (prev == null || p[0] - prev > STALE_MS) ctx.moveTo(x, y); else ctx.lineTo(x, y); prev = p[0]; }
+      ctx.stroke(); };
+    ctx.strokeStyle = meters[i].color; ctx.lineWidth = 2; ctx.setLineDash([]); ctx.lineJoin = 'round'; draw(p => p[1], Y);
+    if (showCad) { ctx.globalAlpha = .55; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); draw(p => p[2], Yc); ctx.globalAlpha = 1; ctx.setLineDash([]); }
+  });
+  // Rundenmarker
+  if (rec) { ctx.strokeStyle = '#8a94a3'; ctx.setLineDash([2, 4]);
+    for (const mt of rec.markers) { /* Marker-Zeit in Wanduhrzeit umrechnen (Näherung bei Pausen) */ const x = X(rec.start + mt + rec.pausedMs); if (x >= L) { ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke(); } }
+    ctx.setLineDash([]); }
+  ctx.restore();
+  if (!lines[0].length && !lines[1].length) { ctx.fillStyle = '#8a94a3'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Keine Daten – Powermeter verbinden oder Demo starten', L + pw / 2, T + ph / 2); }
+}
+
+/* ================= Auswertung ================= */
+let ana = null, anaRes = null, anaFileData = null;
+const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = (v, d = 0) => v == null || !isFinite(v) ? '–' : v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (v, d = 1) => v == null || !isFinite(v) ? '–' : (v > 0 ? '+' : '') + nf(v, d);
+const hm = s => { const m = Math.round(s / 60); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+
+function showView(v) {
+  ['viewRide', 'viewAna'].forEach(id => { $(id).hidden = id !== v; });
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (v === 'viewRide') render(); else if (anaRes) drawAnaCharts();
+  window.scrollTo(0, 0);
+}
+
+function fillAnaSelect() {
+  const sel = $('anaSel'), cur = sel.value;
+  let h = '<option value="">– Fahrt wählen –</option>';
+  if (anaFileData) h += `<option value="file">Datei: ${esc(anaFileData.title)}</option>`;
+  for (const s of sessionsCache) {
+    const live = rec && rec.id === s.id;
+    h += `<option value="s${s.id}" ${live ? 'disabled' : ''}>${new Date(s.start).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} · ${fmtDur(s.durationS || 0)}${live ? ' (läuft – erst nach Stopp)' : ''}</option>`;
+  }
+  sel.innerHTML = h; sel.value = cur; if (sel.value !== cur) sel.value = '';
+}
+
+async function loadAnaFromSession(id) {
+  const { meta, events } = await loadSession(id);
+  setAna({ title: new Date(meta.start).toLocaleString('de-DE'), start: meta.start, names: meta.names,
+    markers: (meta.markers || []).map(t => Math.floor(t / 1000)), s: buildSeries(events) });
+}
+
+function parseCsvText(txt) {
+  const lines = txt.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error('Die CSV-Datei enthält keine Daten.');
+  const head = lines[0], sep = head.includes(';') ? ';' : head.includes('\t') ? '\t' : ',';
+  const unq = v => v.trim().replace(/^"|"$/g, '');
+  const H = head.split(sep).map(unq);
+  const num = v => { if (v == null) return null; v = unq(v); if (v === '') return null; if (sep === ';') v = v.replace(',', '.'); const x = parseFloat(v); return isFinite(x) ? x : null; };
+  const rows = lines.slice(1).map(l => l.split(sep));
+  if (H[0] === 't_ms' && H[1] === 'powermeter') {           // Rohdaten-Export dieser App
+    const names = [], ev = [];
+    for (const r of rows) {
+      const nm = unq(r[1] || ''); let k = names.indexOf(nm);
+      if (k < 0) { if (names.length >= 2) continue; names.push(nm); k = names.length - 1; }
+      const t = num(r[0]), p = num(r[2]); if (t == null || p == null) continue;
+      ev.push([t, k, p, num(r[3]), num(r[4])]);
+    }
+    return { names, events: ev, markers: [] };
+  }
+  const isPow = h => /(watt|power|leistung)/i.test(h) && !/diff/i.test(h);
+  const pc = H.map((h, i) => isPow(h) ? i : -1).filter(i => i >= 0).slice(0, 2);
+  if (!pc.length) throw new Error('Keine Leistungsspalte gefunden. Erwartet wird ein Spaltenname mit „watt“, „power“ oder „leistung“.');
+  const near = (i, re) => { const end = pc.find(x => x > i) ?? H.length; for (let j = i + 1; j < end; j++) if (re.test(H[j])) return j; return -1; };
+  const cols = pc.map(i => ({ p: i, c: near(i, /kadenz|cadence|cad|rpm/i), b: near(i, /balance/i) }));
+  const lapCol = H.findIndex(h => /^(runde|lap)$/i.test(h));
+  const ev = [], markers = []; let lastLap = null;
+  rows.forEach((r, i) => {
+    if (lapCol >= 0) { const L = num(r[lapCol]); if (lastLap != null && L != null && L !== lastLap) markers.push(i); if (L != null) lastLap = L; }
+    cols.forEach((c, k) => { const p = num(r[c.p]); if (p == null) return; ev.push([i * 1000 + 500, k, p, c.c >= 0 ? num(r[c.c]) : null, c.b >= 0 ? num(r[c.b]) : null]); });
+  });
+  const nameOf = h => h.replace(/[_ ]?(watt|power|leistung).*$/i, '').trim() || h;
+  return { names: pc.map(i => nameOf(H[i])), events: ev, markers };
+}
+
+async function loadAnaFile(file) {
+  try {
+    const txt = await file.text(); let d;
+    if (/^\s*[{[]/.test(txt)) {
+      const o = JSON.parse(txt);
+      if (!Array.isArray(o.events)) throw new Error('JSON ohne „events“ – bitte einen JSON-Export dieser App verwenden.');
+      d = { names: o.names || ['A', 'B'], events: o.events, markers: (o.markers || []).map(t => Math.floor(t / 1000)), start: o.start };
+    } else d = parseCsvText(txt);
+    if (!d.events.length) throw new Error('Keine Leistungswerte gefunden.');
+    const names = [d.names[0] || 'A', d.names[1] || 'B'];
+    anaFileData = { title: file.name, start: d.start || null, names, markers: d.markers, s: buildSeries(d.events) };
+    fillAnaSelect(); $('anaSel').value = 'file'; setAna(anaFileData);
+  } catch (e) { notify('Datei konnte nicht gelesen werden: ' + e.message); }
+  $('anaFile').value = '';
+}
+
+function setAna(a) {
+  ana = a;
+  const pad = x => x.concat(Array(Math.max(0, a.n - x.length)).fill(null));
+  a.n = Math.max(a.s[0].p.length, a.s[1].p.length);
+  a.pA = pad(a.s[0].p); a.pB = pad(a.s[1].p);
+  const dl = detectLag(a.pA, a.pB);
+  a.autoLag = dl; $('anaLag').value = dl ? dl.lag : 0;
+  runAna();
+}
+
+function rollMean(arr, w) {
+  if (w <= 1) return arr.slice();
+  const out = new Array(arr.length).fill(null); let s = 0, n = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] != null) { s += arr[i]; n++; }
+    if (i >= w && arr[i - w] != null) { s -= arr[i - w]; n--; }
+    out[i] = arr[i] != null && n ? s / n : null;
+  }
+  return out;
+}
+function shiftArr(arr, lag) {
+  if (!lag) return arr;
+  const out = new Array(arr.length).fill(null);
+  for (let i = 0; i < arr.length; i++) { const j = i + lag; if (j >= 0 && j < arr.length) out[i] = arr[j]; }
+  return out;
+}
+function detectLag(a, b) {
+  let best = null;
+  for (let L = -10; L <= 10; L++) {
+    let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+    for (let i = 0; i < a.length; i++) {
+      const j = i + L; if (j < 0 || j >= b.length) continue;
+      const x = a[i], y = b[j]; if (x == null || y == null || x <= 0 || y <= 0) continue;
+      n++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+    }
+    if (n < 30) continue;
+    const r = (n * sxy - sx * sy) / Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
+    if (isFinite(r) && (!best || r > best.r + 1e-6)) best = { lag: L, r };
+  }
+  return best;
+}
+function bestPower(p, d) {
+  if (p.length < d) return null;
+  let s = 0; for (let i = 0; i < d; i++) s += p[i] ?? 0;
+  let m = s; for (let i = d; i < p.length; i++) { s += (p[i] ?? 0) - (p[i - d] ?? 0); if (s > m) m = s; }
+  return m / d;
+}
+const meanNN = (arr, from = 0, to = arr.length, pos = false) => { let s = 0, n = 0; for (let i = from; i < to; i++) { const v = arr[i]; if (v != null && (!pos || v > 0)) { s += v; n++; } } return n ? s / n : null; };
+const ZONES = [['Z1 Regeneration', 0, .55], ['Z2 Grundlage', .55, .75], ['Z3 Tempo', .75, .90], ['Z4 Schwelle', .90, 1.05], ['Z5 VO2max', 1.05, 1.20], ['Z6 Anaerob', 1.20, 1.50], ['Z7 Neuromuskulär', 1.50, Infinity]];
+
+function runAna() {
+  if (!ana) return;
+  const ftp = +$('ftp').value || 250, w = +$('anaSmooth').value, minW = +$('anaMin').value || 0, lag = Math.round(+$('anaLag').value || 0);
+  localStorage.setItem('ftp', ftp);
+  const { pA, pB, n, s } = ana;
+  const hasB = s[1].nP > 0;
+  // Zusammenfassung pro Powermeter
+  const sum = s.map((x, i) => {
+    const np = x.np, IF = np ? np / ftp : null;
+    return { dur: x.p.length, avg: x.avg, np, max: x.nP ? x.max : null, kj: x.nP ? x.kj : null, IF, tss: IF ? x.p.length * np * IF / (ftp * 3600) * 100 : null,
+      cad: meanNN(x.c, 0, x.c.length, true), bal: meanNN(x.b), has: x.nP > 0 };
+  });
+  // Vergleich (geglättet, Versatz ausgeglichen)
+  const a = rollMean(pA, w), b = shiftArr(rollMean(pB, w), lag);
+  let k = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0, sd = 0, sdd = 0;
+  const pts = [], bins = new Map();
+  for (let i = 0; i < n; i++) {
+    const x = a[i], y = b[i]; if (x == null || y == null || x < minW || y < minW) continue;
+    k++; sa += x; sb += y; saa += x * x; sbb += y * y; sab += x * y; const d = x - y; sd += d; sdd += d * d;
+    pts.push([x, y]);
+    const key = Math.floor((x + y) / 2 / 50) * 50; const bn = bins.get(key) || { n: 0, a: 0, b: 0 };
+    bn.n++; bn.a += x; bn.b += y; bins.set(key, bn);
+  }
+  let cmp = null;
+  if (k >= 10) {
+    const mA = sa / k, mB = sb / k, varB = sbb / k - mB * mB, cov = sab / k - mA * mB, varA = saa / k - mA * mA;
+    const slope = cov / varB, icpt = mA - slope * mB, bias = sd / k, sdD = Math.sqrt(Math.max(0, sdd / k - bias * bias));
+    cmp = { n: k, mA, mB, pct: (mA - mB) / mB * 100, factor: mA / mB, slope, icpt, r: cov / Math.sqrt(varA * varB), bias, sdD, rmse: Math.sqrt(sdd / k) };
+    cmp.kind = Math.abs(slope - 1) < 0.01 ? (Math.abs(bias) < 3 ? 'keine nennenswerte Abweichung' : 'konstanter Versatz in Watt (Offset)')
+      : Math.abs(icpt) < 6 ? 'prozentuale Abweichung (Skalierung)' : 'Mischung aus Offset und Skalierung';
+  }
+  const binRows = [...bins.entries()].sort((p, q) => p[0] - q[0]).map(([key, v]) => ({ from: key, n: v.n, a: v.a / v.n, b: v.b / v.n, pct: (v.a - v.b) / v.b * 100 }));
+  const durs = [[5, '5 s'], [60, '1 min'], [300, '5 min'], [1200, '20 min'], [3600, '60 min']];
+  const best = durs.map(([d, l]) => ({ l, a: bestPower(s[0].p, d), b: bestPower(s[1].p, d) })).filter(r => r.a != null || r.b != null);
+  const zones = ZONES.map(([l, lo, hi]) => {
+    const cnt = arr => arr.reduce((c, v) => c + (v != null && v >= lo * ftp && v < hi * ftp ? 1 : 0), 0);
+    return { l, lo: Math.round(lo * ftp), hi: isFinite(hi) ? Math.round(hi * ftp) : null, a: cnt(s[0].p), b: cnt(s[1].p) };
+  });
+  const bounds = [0, ...ana.markers.filter(m => m > 0 && m < n).sort((x, y) => x - y), n];
+  const pBs = shiftArr(pB, lag);
+  const laps = bounds.length > 2 ? bounds.slice(0, -1).map((from, i) => {
+    const to = bounds[i + 1], la = meanNN(pA, from, to), lb = meanNN(pBs, from, to);
+    return { no: i + 1, dur: to - from, a: la, b: lb, pct: la != null && lb ? (la - lb) / lb * 100 : null };
+  }) : [];
+  anaRes = { ftp, w, minW, lag, sum, cmp, pts, binRows, best, zones, laps, a, b, hasB };
+  renderAna();
+}
+
+function renderAna() {
+  const R = anaRes, [nA, nB] = ana.names.map(esc), c = R.cmp;
+  const al = ana.autoLag;
+  $('anaSrc').textContent = `${ana.title} · ${fmtDur(ana.n)}` + (al && R.hasB ? ` · Versatz automatisch erkannt: ${al.lag > 0 ? '+' : ''}${al.lag} s (r = ${nf(al.r, 3)})` : '');
+  $('anaCsv').disabled = false;
+  const th = `<tr><th></th><th style="color:${COLORS[0]}">${nA}</th><th style="color:${COLORS[1]}">${nB}</th></tr>`;
+  const row = (l, f) => `<tr><td>${l}</td><td>${R.sum[0].has ? f(R.sum[0]) : '–'}</td><td>${R.sum[1].has ? f(R.sum[1]) : '–'}</td></tr>`;
+  let h = `<section class="card"><h2>Überblick</h2><div class="tw"><table>${th}
+    ${row('Dauer', x => fmtDur(x.dur))}${row('Ø Leistung', x => nf(x.avg) + ' W')}${row('NP', x => nf(x.np) + ' W')}
+    ${row('Max', x => nf(x.max) + ' W')}${row('Arbeit', x => nf(x.kj) + ' kJ')}${row('IF', x => nf(x.IF, 2))}${row('TSS', x => nf(x.tss))}
+    ${row('Ø Kadenz (ohne Rollen)', x => nf(x.cad) + ' U/min')}${row('Ø Balance L/R', x => x.bal == null ? '–' : nf(x.bal) + '/' + nf(100 - x.bal))}</table></div></section>
+    <section class="card"><h2>Verlauf (Glättung 10 s)</h2><div class="fig"><canvas id="aOv"></canvas></div>
+    <div class="legend"><span><i style="background:${COLORS[0]}"></i>${nA}</span><span><i style="background:${COLORS[1]}"></i>${nB}</span>${ana.markers.length ? '<span><i style="background:#8a94a3;height:1px"></i>Runden</span>' : ''}</div></section>`;
+  if (c) {
+    h += `<section class="card"><h2>Vergleich ${nA} ↔ ${nB}</h2>
+      <div class="cmp"><div><b>${sgn(c.pct)} %</b><span>Ø Abweichung</span></div><div><b>${nf(c.factor, 3)}</b><span>Faktor A/B</span></div>
+      <div><b>${sgn(c.bias)} W</b><span>Bias ± ${nf(c.sdD)} W (SD)</span></div><div><b>${nf(c.r, 3)}</b><span>Korrelation r</span></div></div>
+      <p class="verdict">${nA} misst im Schnitt <b>${nf(Math.abs(c.pct), 1)} % ${c.pct >= 0 ? 'mehr' : 'weniger'}</b> als ${nB}. Charakter: <b>${c.kind}</b>
+      (A = ${nf(c.slope, 3)} · B ${c.icpt >= 0 ? '+' : '−'} ${nf(Math.abs(c.icpt), 1)} W). 95 % der Sekundenwerte weichen zwischen ${sgn(c.bias - 1.96 * c.sdD, 0)} und ${sgn(c.bias + 1.96 * c.sdD, 0)} W ab.</p>
+      <p class="muted">Basis: ${nf(c.n)} s, beide ≥ ${R.minW} W, Glättung ${R.w} s, Versatz B ${R.lag > 0 ? '+' : ''}${R.lag} s.</p></section>
+      <div class="figs"><section class="card"><h2>${nA} gegen ${nB}</h2><div class="fig sq"><canvas id="aSc"></canvas></div>
+        <div class="legend"><span><i style="background:#8a94a3"></i>Ideallinie</span><span><i style="background:#3ecf8e"></i>Regression</span></div></section>
+      <section class="card"><h2>Bland-Altman</h2><div class="fig sq"><canvas id="aBa"></canvas></div>
+        <div class="legend"><span>x: Mittel aus A und B · y: A − B</span><span><i style="background:#3ecf8e"></i>Bias</span><span><i style="background:#f5c542"></i>±1,96 SD</span></div></section></div>
+      <section class="card"><h2>Abweichung nach Leistungsbereich</h2><div class="tw"><table>
+      <tr><th>Bereich</th><th>Sek.</th><th>Ø ${nA}</th><th>Ø ${nB}</th><th>Δ %</th><th style="min-width:110px">← ${nB} mehr · ${nA} mehr →</th></tr>
+      ${R.binRows.map(r => { const wd = Math.min(Math.abs(r.pct), 10) * 5; return `<tr class="${r.n < 30 ? 'faint' : ''}"><td>${r.from}–${r.from + 49} W</td><td>${nf(r.n)}</td><td>${nf(r.a)}</td><td>${nf(r.b)}</td><td>${sgn(r.pct)}</td>
+        <td><div class="dbar"><i style="background:${r.pct >= 0 ? COLORS[0] : COLORS[1]};${r.pct >= 0 ? 'left:50%' : 'right:50%'};width:${wd}%"></i></div></td></tr>`; }).join('')}
+      </table></div><p class="muted">Balken bis ±10 %. Blasse Zeilen: weniger als 30 s Daten.</p></section>`;
+  } else if (R.hasB) h += `<section class="card"><h2>Vergleich</h2><p class="muted">Zu wenige gemeinsame Werte über ${R.minW} W für einen Vergleich.</p></section>`;
+  h += `<section class="card"><h2>Bestwerte</h2><div class="tw"><table><tr><th>Dauer</th><th>${nA}</th><th>${nB}</th><th>Δ %</th></tr>
+    ${R.best.map(r => `<tr><td>${r.l}</td><td>${nf(r.a)} W</td><td>${R.hasB ? nf(r.b) + ' W' : '–'}</td><td>${r.a && r.b ? sgn((r.a - r.b) / r.b * 100) : '–'}</td></tr>`).join('')}</table></div></section>
+    <section class="card"><h2>Zeit in Zonen (FTP ${R.ftp} W)</h2><div class="tw"><table><tr><th>Zone</th><th>Watt</th><th>${nA}</th><th>${nB}</th></tr>
+    ${R.zones.map(z => `<tr><td>${z.l}</td><td>${z.lo}${z.hi ? '–' + (z.hi - 1) : '+'}</td><td>${fmtDur(z.a)}</td><td>${R.hasB ? fmtDur(z.b) : '–'}</td></tr>`).join('')}</table></div></section>`;
+  if (R.laps.length) h += `<section class="card"><h2>Runden</h2><div class="tw"><table><tr><th>Runde</th><th>Dauer</th><th>Ø ${nA}</th><th>Ø ${nB}</th><th>Δ %</th></tr>
+    ${R.laps.map(l => `<tr><td>${l.no}</td><td>${fmtDur(l.dur)}</td><td>${nf(l.a)} W</td><td>${nf(l.b)} W</td><td>${sgn(l.pct)}</td></tr>`).join('')}</table></div></section>`;
+  $('anaOut').innerHTML = h;
+  drawAnaCharts();
+}
+
+function figCtx(id) {
+  const c = $(id); if (!c) return null;
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  c.width = W * dpr; c.height = H * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.font = '11px system-ui';
+  return { g, W, H };
+}
+const niceStep = (range, n = 5) => { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw || 1)), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; };
+function axes(g, L, T, pw, ph, x0, x1, y0, y1, fx = v => v, fy = v => v) {
+  g.strokeStyle = '#262c35'; g.fillStyle = '#8a94a3'; g.lineWidth = 1;
+  const X = v => L + (v - x0) / (x1 - x0) * pw, Y = v => T + ph - (v - y0) / (y1 - y0) * ph;
+  const sy = niceStep(y1 - y0); g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (let v = Math.ceil(y0 / sy) * sy; v <= y1 + 1e-9; v += sy) { const y = Math.round(Y(v)) + .5; g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.fillText(fy(v), L - 5, y); }
+  const sx = niceStep(x1 - x0, pw < 300 ? 3 : 5); g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let v = Math.ceil(x0 / sx) * sx; v <= x1 + 1e-9; v += sx) { const x = Math.round(X(v)) + .5; g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke(); g.fillText(fx(v), x, T + ph + 5); }
+  return { X, Y };
+}
+function drawAnaCharts() {
+  if (!anaRes || $('viewAna').hidden) return;
+  const R = anaRes;
+  // Verlauf
+  let f = figCtx('aOv');
+  if (f) {
+    const { g, W, H } = f, L = 40, T = 8, pw = W - L - 10, ph = H - 30, n = ana.n;
+    const lines = [rollMean(ana.pA, 10), rollMean(ana.pB, 10)];
+    let ymax = 100; lines.forEach(l => l.forEach(v => { if (v != null && v > ymax) ymax = v; }));
+    const ax = axes(g, L, T, pw, ph, 0, Math.max(n, 60), 0, Math.ceil(ymax * 1.05 / 50) * 50, v => n > 5400 ? hm(v) : fmtDur(v).replace(/^0:/, ''));
+    g.save(); g.beginPath(); g.rect(L, T, pw, ph); g.clip();
+    g.strokeStyle = '#8a94a3'; g.setLineDash([2, 4]);
+    for (const m of ana.markers) { const x = ax.X(m); g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke(); }
+    g.setLineDash([]);
+    lines.forEach((l, i) => {
+      g.strokeStyle = COLORS[i]; g.lineWidth = 1.6; g.beginPath(); let pen = false;
+      const per = n / pw;
+      for (let px = 0; px < pw; px++) {
+        const v = meanNN(l, Math.floor(px * per), Math.max(Math.floor(px * per) + 1, Math.floor((px + 1) * per)));
+        if (v == null) { pen = false; continue; }
+        const x = L + px, y = ax.Y(v); if (pen) g.lineTo(x, y); else { g.moveTo(x, y); pen = true; }
+      }
+      g.stroke();
+    });
+    g.restore();
+  }
+  if (!R.cmp) return;
+  const c = R.cmp, pts = R.pts, step = Math.max(1, Math.floor(pts.length / 6000));
+  // Streudiagramm
+  f = figCtx('aSc');
+  if (f) {
+    const { g, W, H } = f, L = 40, T = 8, pw = W - L - 10, ph = H - 30;
+    let mx = 100; for (const p of pts) mx = Math.max(mx, p[0], p[1]); mx = Math.ceil(mx * 1.05 / 50) * 50;
+    const ax = axes(g, L, T, pw, ph, 0, mx, 0, mx);
+    g.save(); g.beginPath(); g.rect(L, T, pw, ph); g.clip();
+    g.fillStyle = 'rgba(76,154,255,.28)';
+    for (let i = 0; i < pts.length; i += step) g.fillRect(ax.X(pts[i][1]) - 1.2, ax.Y(pts[i][0]) - 1.2, 2.4, 2.4);
+    g.strokeStyle = '#8a94a3'; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(ax.X(0), ax.Y(0)); g.lineTo(ax.X(mx), ax.Y(mx)); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#3ecf8e'; g.lineWidth = 2; g.beginPath(); g.moveTo(ax.X(0), ax.Y(c.icpt)); g.lineTo(ax.X(mx), ax.Y(c.icpt + c.slope * mx)); g.stroke();
+    g.restore();
+    g.fillStyle = '#8a94a3'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText(`y: ${ana.names[0]}`, L + 6, T + 4);
+    g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText(`x: ${ana.names[1]}`, L + pw - 4, T + ph - 4);
+  }
+  // Bland-Altman
+  f = figCtx('aBa');
+  if (f) {
+    const { g, W, H } = f, L = 40, T = 8, pw = W - L - 10, ph = H - 30;
+    const lim = Math.max(20, Math.abs(c.bias) + 4 * c.sdD);
+    let mx = 100; for (const p of pts) mx = Math.max(mx, (p[0] + p[1]) / 2); mx = Math.ceil(mx * 1.05 / 50) * 50;
+    const ax = axes(g, L, T, pw, ph, 0, mx, -lim, lim, v => v, v => (v > 0 ? '+' : '') + Math.round(v));
+    g.save(); g.beginPath(); g.rect(L, T, pw, ph); g.clip();
+    g.fillStyle = 'rgba(255,159,67,.28)';
+    for (let i = 0; i < pts.length; i += step) { const p = pts[i]; g.fillRect(ax.X((p[0] + p[1]) / 2) - 1.2, ax.Y(p[0] - p[1]) - 1.2, 2.4, 2.4); }
+    const hl = (v, col, dash) => { g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash(dash); g.beginPath(); g.moveTo(L, ax.Y(v)); g.lineTo(L + pw, ax.Y(v)); g.stroke(); };
+    hl(c.bias, '#3ecf8e', []); hl(c.bias + 1.96 * c.sdD, '#f5c542', [5, 4]); hl(c.bias - 1.96 * c.sdD, '#f5c542', [5, 4]); g.setLineDash([]);
+    g.restore();
+  }
+}
+
+function exportAnaCsv() {
+  if (!anaRes) return;
+  const R = anaRes, f = csvFmt(), S = f.sep, v = (x, d = 1) => x == null || !isFinite(x) ? '' : f.num(+x.toFixed(d)), [nA, nB] = ana.names;
+  const L = [`Auswertung${S}${ana.title}`, `Einstellungen${S}FTP ${R.ftp} W${S}Glättung ${R.w} s${S}ab ${R.minW} W${S}Versatz B ${R.lag} s`, '',
+    `Überblick${S}${nA}${S}${nB}`];
+  const sumRow = (l, k, d = 0) => L.push([l, ...R.sum.map(x => x.has ? v(x[k], d) : '')].join(S));
+  sumRow('Dauer_s', 'dur'); sumRow('Durchschnitt_W', 'avg'); sumRow('NP_W', 'np'); sumRow('Max_W', 'max'); sumRow('Arbeit_kJ', 'kj');
+  sumRow('IF', 'IF', 3); sumRow('TSS', 'tss'); sumRow('Kadenz_rpm', 'cad'); sumRow('Balance_L_%', 'bal');
+  if (R.cmp) {
+    const c = R.cmp; L.push('', 'Vergleich', ...[['Sekunden', c.n, 0], ['Abweichung_%', c.pct, 2], ['Faktor_A_B', c.factor, 4], ['Bias_W', c.bias, 1], ['SD_W', c.sdD, 1],
+      ['RMSE_W', c.rmse, 1], ['Korrelation_r', c.r, 4], ['Steigung', c.slope, 4], ['Achsenabschnitt_W', c.icpt, 1]].map(([l, x, d]) => l + S + v(x, d)), `Charakter${S}${c.kind}`);
+    L.push('', ['Bereich_W', 'Sekunden', 'Ø_' + nA, 'Ø_' + nB, 'Delta_%'].join(S), ...R.binRows.map(r => [`${r.from}-${r.from + 49}`, r.n, v(r.a), v(r.b), v(r.pct, 2)].join(S)));
+  }
+  L.push('', ['Bestwert', nA + '_W', nB + '_W'].join(S), ...R.best.map(r => [r.l, v(r.a, 0), v(r.b, 0)].join(S)));
+  L.push('', ['Zone', 'von_W', 'bis_W', nA + '_s', nB + '_s'].join(S), ...R.zones.map(z => [z.l, z.lo, z.hi ? z.hi - 1 : '', z.a, z.b].join(S)));
+  if (R.laps.length) L.push('', ['Runde', 'Dauer_s', 'Ø_' + nA, 'Ø_' + nB, 'Delta_%'].join(S), ...R.laps.map(l => [l.no, l.dur, v(l.a), v(l.b), v(l.pct, 2)].join(S)));
+  download(`auswertung_${ana.start ? fileStamp(ana.start) : ana.title.replace(/\.[^.]+$/, '')}.csv`, '﻿' + L.join('\r\n'), 'text/csv');
+}
+
+/* ================= Init ================= */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => showView(b.dataset.v));
+$('ftp').value = localStorage.getItem('ftp') || 250;
+$('anaSel').onchange = () => { const v = $('anaSel').value; if (v === 'file' && anaFileData) setAna(anaFileData); else if (v.startsWith('s')) loadAnaFromSession(+v.slice(1)); };
+$('anaFile').onchange = e => { if (e.target.files[0]) loadAnaFile(e.target.files[0]); };
+['ftp', 'anaSmooth', 'anaMin', 'anaLag'].forEach(id => $(id).onchange = runAna);
+$('anaAuto').onclick = () => { if (ana && ana.autoLag) { $('anaLag').value = ana.autoLag.lag; runAna(); } };
+$('anaCsv').onclick = exportAnaCsv;
+window.addEventListener('resize', () => { if (!$('viewAna').hidden) drawAnaCharts(); });
+fillAnaSelect();
+buildMeterCards();
+$('bStart').onclick = startRec; $('bPause').onclick = togglePause; $('bLap').onclick = lap; $('bStop').onclick = stopRec;
+$('optWake').onchange = e => setWake(e.target.checked);
+$('optKeep').onchange = e => setKeepAlive(e.target.checked);
+['optWin', 'optSmooth', 'optCad'].forEach(id => $(id).onchange = () => { localStorage.setItem(id, $(id).type === 'checkbox' ? $(id).checked : $(id).value); render(); });
+['optWin', 'optSmooth', 'optCsv'].forEach(id => { const v = localStorage.getItem(id); if (v) $(id).value = v; });
+$('optCad').checked = localStorage.getItem('optCad') === 'true';
+$('optCsv').onchange = () => localStorage.setItem('optCsv', $('optCsv').value);
+if (!('wakeLock' in navigator)) $('optWake').disabled = true;
+$('bgInfo').textContent = 'Daten kommen ereignisgesteuert per Bluetooth und werden auch bei verdecktem Tab weiter aufgezeichnet. Hintergrund-Modus spielt eine unhörbare Tonspur ab, damit der Browser den Tab nicht einfriert, und zeigt die Leistung im Sperrbildschirm an.';
+if (!navigator.bluetooth) {
+  const b = $('btBanner'); b.hidden = false;
+  b.innerHTML = '<b>Web Bluetooth nicht verfügbar.</b> Nötig ist Chrome oder Edge (Android, Windows, macOS, Linux, ChromeOS) – auf iPhone/iPad z. B. die App „Bluefy“. Die Seite muss über HTTPS oder localhost laufen und darf nicht in einem eingebetteten Rahmen geöffnet sein. Der Demo-Modus funktioniert trotzdem.';
+}
+setInterval(render, 500);
+window.addEventListener('resize', render);
+DB.open().then(refreshSessions).catch(e => notify('Lokaler Speicher (IndexedDB) nicht verfügbar: ' + e.message));
+updateRecUi(); render();
+</script>
+</body>
+</html>
